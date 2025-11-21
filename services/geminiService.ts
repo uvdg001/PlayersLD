@@ -1,27 +1,27 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Player } from "../types";
 
-const API_KEY = process.env.API_KEY;
-
-// No inicializamos 'ai' aquí globalmente para evitar errores si la key falta al cargar el archivo.
-const getAIClient = () => {
-    if (!API_KEY) return null;
-    return new GoogleGenAI({ apiKey: API_KEY });
+// Helper para inicializar el cliente de forma segura.
+const getGeminiClient = () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("VITE_GEMINI_API_KEY no está definida. Las funciones de IA no funcionarán.");
+        return null;
+    }
+    return new GoogleGenAI({ apiKey });
 };
 
 export const getMotivationalQuote = async (): Promise<string> => {
-    const ai = getAIClient();
-    if (!ai) {
-        console.warn("API_KEY faltante. Usando frase por defecto.");
-        return "La mayor victoria es la amistad que forjamos en la cancha.";
-    }
+    const ai = getGeminiClient();
+    if (!ai) return "En esta cancha, la edad es solo un número en la camiseta.";
+
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: 'Genera una frase motivacional corta, inspiradora y un poco divertida para un equipo de fútbol de amigos mayores de 50 años que juegan por diversión todos los sábados. El tono debe ser de camaradería y celebrar la experiencia sobre el resultado.',
         });
         
-        return response.text.trim();
+        return response.text?.trim() || "La mayor victoria es la amistad que forjamos en la cancha.";
     } catch (error) {
         console.error("Error fetching motivational quote from Gemini:", error);
         return "En esta cancha, la edad es solo un número en la camiseta.";
@@ -29,14 +29,14 @@ export const getMotivationalQuote = async (): Promise<string> => {
 };
 
 export const generateTeams = async (players: Player[]): Promise<{ teamA: string[], teamB: string[] }> => {
-    const ai = getAIClient();
-    
     const playersInfo = players.map(p => 
         `${p.firstName} '${p.nickname}' ${p.lastName} (Rol: ${p.role}, Habilidad: ${p.skillLevel}/5)`
     ).join('; ');
     
+    const ai = getGeminiClient();
     if (!ai) {
-        console.warn("API_KEY not set. Using fallback for team generation.");
+        alert("La API de IA no está configurada. Se armarán los equipos de forma aleatoria.");
+        // Fallback a lógica aleatoria si no hay cliente.
         const playerNames = players.map(p => `${p.firstName} '${p.nickname}' ${p.lastName}`);
         const mid = Math.ceil(playerNames.length / 2);
         return {
@@ -70,10 +70,12 @@ export const generateTeams = async (players: Player[]): Promise<{ teamA: string[
             }
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = response.text?.trim();
+        if (!jsonText) {
+            throw new Error("Received empty response from Gemini API.");
+        }
         const parsedResponse = JSON.parse(jsonText);
         
-        // Ensure the response only contains valid player names
         const allPlayerNames = players.map(p => `${p.firstName} '${p.nickname}' ${p.lastName}`);
         const filterTeam = (team: any[]) => Array.isArray(team) ? team.filter(name => typeof name === 'string' && allPlayerNames.includes(name)) : [];
 

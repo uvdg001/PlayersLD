@@ -95,7 +95,8 @@ export interface Teams {
 }
 
 export interface ChatMessage {
-  id: number;
+  // FIX: Changed id to string to match Firestore document ID type.
+  id: string;
   matchId?: number;
   text: string;
   senderId: number;

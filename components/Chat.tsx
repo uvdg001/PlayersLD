@@ -6,8 +6,10 @@ interface ChatProps {
     players: Player[];
     messages: ChatMessage[];
     onAddMessage: (text: string) => void;
-    onDeleteMessage: (messageId: number) => void;
-    onToggleReaction: (messageId: number, emoji: string) => void;
+    // FIX: Changed messageId to string to match ChatMessage.id type.
+    onDeleteMessage: (messageId: string) => void;
+    // FIX: Changed messageId to string to match ChatMessage.id type.
+    onToggleReaction: (messageId: string, emoji: string) => void;
     matchTitle?: string;
     birthdayPlayers: Player[];
 }
@@ -18,7 +20,7 @@ export const Chat: React.FC<ChatProps> = ({ currentUser, players, messages, onAd
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [reactionPickerId, setReactionPickerId] = useState<number | null>(null);
+    const [reactionPickerId, setReactionPickerId] = useState<string | null>(null);
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     const emojiPickerRef = useRef<HTMLDivElement>(null);
 
