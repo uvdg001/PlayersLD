@@ -1,3 +1,6 @@
+// FIX: Add reference to vite client types to resolve import.meta.env error.
+/// <reference types="vite/client" />
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { MotivationalQuote } from './components/MotivationalQuote';
@@ -66,21 +69,20 @@ import {
 
 // Esta variable global es inyectada por el entorno de ejecución (ej. Vercel)
 declare let __initial_auth_token: string | undefined;
-// Vercel inyecta las variables de entorno en process.env, pero aquí manejamos la inyección directa
-// para asegurar compatibilidad.
-declare let FIREBASE_CONFIG_JSON: string | undefined;
+
+// Lee la variable de entorno de Vite. El prefijo VITE_ es crucial.
+const firebaseConfigJson = import.meta.env.VITE_FIREBASE_CONFIG_JSON;
 
 // Helper para parsear config de forma segura
 const parseFirebaseConfig = () => {
     try {
-        // Prioridad 1: Variable global inyectada (común en algunos bundlers)
-        if (typeof FIREBASE_CONFIG_JSON !== 'undefined' && FIREBASE_CONFIG_JSON && FIREBASE_CONFIG_JSON.trim() !== "") {
-            const config = JSON.parse(FIREBASE_CONFIG_JSON);
+        if (firebaseConfigJson && firebaseConfigJson.trim() !== "") {
+            const config = JSON.parse(firebaseConfigJson);
             // Validación básica: debe tener apiKey
             if (config && config.apiKey) return config;
         }
     } catch (e) {
-        console.error("Error parseando FIREBASE_CONFIG_JSON", e);
+        console.error("Error parseando VITE_FIREBASE_CONFIG_JSON", e);
     }
     return {};
 };
