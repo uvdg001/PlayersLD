@@ -1,0 +1,7 @@
+{
+  "name": "PLAYERS LD",
+  "description": "Una aplicación para organizar partidos de fútbol semanales para el equipo PLAYERS LD, gestionando la asistencia de los jugadores y los detalles del partido.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
