@@ -8,8 +8,8 @@ import { LeagueStandings } from './LeagueStandings.tsx';
 import { StarRating } from './StarRating.tsx';
 import { useToast } from '../hooks/useToast.ts';
 import { AttendanceGrid } from './AttendanceGrid.tsx';
-import { MatchAdminModal } from './MatchAdminModal.tsx'; // Importamos el modal
-import { saveDocument } from '../services/firebaseService.ts'; // Importamos para guardar en lotes
+import { MatchAdminModal } from './MatchAdminModal.tsx'; 
+import { saveDocument } from '../services/firebaseService.ts'; 
 
 interface MatchCardProps {
     match: Match;
@@ -36,7 +36,7 @@ interface MatchCardProps {
     onDeleteMatch?: (matchId: number) => void;
 }
 
-// ... Scoreboard component (sin cambios, omitido por brevedad en este bloque, se asume igual)
+// ... Scoreboard component
 interface ScoreboardProps {
     matchId: number;
     matchStatus?: string;
@@ -123,7 +123,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ matchId, matchStatus, myTeamNam
     );
 };
 
-// ... InfoItem component (sin cambios)
+// ... InfoItem component 
 const InfoItem: React.FC<{ icon: React.ReactElement; label: string; value: string | React.ReactElement; timeClass?: string }> = ({ icon, label, value, timeClass = '' }) => (
     <div className="flex items-center space-x-3 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-100 dark:border-gray-600 shadow-sm">
         <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${timeClass || 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'}`}>
@@ -131,12 +131,12 @@ const InfoItem: React.FC<{ icon: React.ReactElement; label: string; value: strin
         </div>
         <div>
             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">{label}</p>
-            <div className="text-gray-900 dark:text-gray-100 font-bold text-sm md:text-base leading-tight">{value}</div>
+            <div className="text-gray-900 dark:text-white font-bold text-sm md:text-base leading-tight">{value}</div>
         </div>
     </div>
 );
 
-// NUEVA Sección de Calificación con "Guardar Lote"
+// ... BatchPlayerRatingSection
 const BatchPlayerRatingSection: React.FC<{
     currentUser: Player;
     players: Player[];
@@ -209,7 +209,7 @@ const BatchPlayerRatingSection: React.FC<{
     );
 };
 
-// ... AdminSection (modificado para quitar cosas que movimos al modal si es necesario, o dejar solo opciones generales)
+// ... AdminSection
 const AdminSection: React.FC<{ 
     match: Match; 
     onToggleRatingStatus: (matchId: number) => Promise<void>;
@@ -252,14 +252,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, players, currentUse
     const toast = useToast();
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
     
-    // ... Icons (CalendarIcon, TimeIcon, etc.) - omitidos por brevedad, se mantienen igual
     const CalendarIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12.75 12.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM7.5 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM8.25 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM9.75 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM10.5 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM12.75 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM14.25 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15 17.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM16.5 15.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15 12.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM16.5 13.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /><path fillRule="evenodd" d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75Zm13.5 9a1.5 1.5 0 0 0-1.5-1.5H5.25a1.5 1.5 0 0 0-1.5 1.5v7.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5v-7.5Z" clipRule="evenodd" /></svg> );
     const TimeIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" /></svg> );
     const WarmupIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" /></svg> );
     const TalkIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97ZM6.75 8.25a.75.75 0 0 1 .75-.75h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H7.5Z" clipRule="evenodd" /></svg> );
     const LocationIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" /></svg> );
     
-    // ... logic for confirmedPlayers, share, score (sin cambios)
+    // ... logic for confirmedPlayers, share, score
     const confirmedPlayers = match.playerStatuses.filter(p => p.attendanceStatus === AttendanceStatusEnum.CONFIRMED);
     const confirmedCount = confirmedPlayers.length;
     const mapUrl = match.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.address)}` : '#';
@@ -348,8 +347,9 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                             </div>
                         ) : (
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Próximo Partido</h2>
+                                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Próximo Partido</h2>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{match.date}</p>
+                                <p className={`text-xs font-bold uppercase mt-1 ${match.status === 'FINALIZADO' ? 'text-blue-500' : 'text-green-500'}`}>{match.status}</p>
                             </div>
                         )}
                         {isAdmin && onDeleteMatch && (
@@ -372,7 +372,7 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                         </div>
                     )}
                      <div className="text-right hidden md:block">
-                        <span className="font-bold text-lg text-gray-800 dark:text-gray-200">{match.location}</span>
+                        <span className="font-bold text-lg text-gray-800 dark:text-white">{match.location}</span>
                         {match.address && (
                             <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="block text-sm text-blue-500 hover:underline">
                                 {match.address}
@@ -411,19 +411,22 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                 />
                 
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300">Convocatoria ({confirmedCount})</h3>
+                    <h3 className="text-xl font-bold text-gray-700 dark:text-white">Convocatoria ({confirmedCount})</h3>
                     <div className="flex gap-2">
                         {isAdmin && (
-                            <button
-                                onClick={() => setIsAdminModalOpen(true)}
-                                className="px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-black transition-colors flex items-center gap-2 text-sm"
-                            >
-                                🛠️ Administrar Partido
-                            </button>
+                            <div className="flex flex-col items-end">
+                                <button
+                                    onClick={() => setIsAdminModalOpen(true)}
+                                    className="px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-black transition-colors flex items-center gap-2 text-sm"
+                                >
+                                    🛠️ Administrar Partido
+                                </button>
+                                <span className="text-[10px] text-gray-500 mt-1 dark:text-gray-400">Goles, Tarjetas y Asistencia Masiva</span>
+                            </div>
                         )}
                         <button
                             onClick={handleShare}
-                            className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
+                            className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm h-10"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path fillRule="evenodd" d="M15.75 4.5a3 3 0 1 1 .825 2.066l-8.421 4.217a3.001 3.001 0 0 1-1.896 0L3.06 9.64A3 3 0 1 1 5.71 8.525l5.342 2.671a3.001 3.001 0 0 1 1.896 0l5.342-2.672a3 3 0 1 1 .825 2.066l-8.421 4.217a3 3 0 0 1-3.295 0L2.71 13.525a3 3 0 1 1 .825-2.066l8.421-4.217a3 3 0 0 1 3.295 0Z" clipRule="evenodd" /></svg>
                             Compartir
@@ -453,8 +456,6 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                     </div>
                 )}
                 
-                {/* NOTA: Eliminamos el MatchStatsEditor en linea y lo pasamos al Modal */}
-
                 {match.ratingStatus === 'OPEN' && !userIsStaff && !userFinishedVoting && eligiblePlayersForRating.length > 0 && (
                      <BatchPlayerRatingSection
                         currentUser={currentUser}

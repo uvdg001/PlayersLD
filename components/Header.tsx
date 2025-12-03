@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Player, Page } from '../types.ts';
 
@@ -8,6 +9,7 @@ interface HeaderProps {
     currentPage: Page;
     setCurrentPage: (page: Page) => void;
     isAdmin: boolean;
+    onEditProfile: () => void; // Nuevo prop
 }
 
 const NavButton: React.FC<{
@@ -56,7 +58,7 @@ const Clock: React.FC = () => {
     );
 };
 
-export const Header: React.FC<HeaderProps> = ({ currentUser, onOpenRoster, onChangeUser, currentPage, setCurrentPage, isAdmin }) => {
+export const Header: React.FC<HeaderProps> = ({ currentUser, onOpenRoster, onChangeUser, currentPage, setCurrentPage, isAdmin, onEditProfile }) => {
     return (
         <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-40">
             <div className="container mx-auto px-4 md:px-6 py-3">
@@ -80,7 +82,12 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onOpenRoster, onCha
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" /></svg>
                                </div>
                             )}
-                            <span className="font-semibold text-gray-700 dark:text-gray-200 hidden sm:block">{currentUser.nickname}</span>
+                            <div className="flex flex-col">
+                                <span className="font-semibold text-gray-700 dark:text-gray-200 hidden sm:block leading-none">{currentUser.nickname}</span>
+                                <button onClick={onEditProfile} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline text-left hidden sm:block">
+                                    Mi Perfil
+                                </button>
+                            </div>
                             <button onClick={onChangeUser} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700" title="Cambiar de usuario">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-600 dark:text-gray-300"><path fillRule="evenodd" d="M10.78 1.47a.75.75 0 0 1 1.06 0l7.5 7.5a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 1 1-1.06-1.06L17.69 12l-6.91-6.91a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /><path fillRule="evenodd" d="M2.25 12c0 .414.336.75.75.75h14.19l-6.91 6.91a.75.75 0 1 0 1.06 1.06l7.5-7.5a.75.75 0 0 0 0-1.06l-7.5-7.5a.75.75 0 1 0-1.06 1.06L17.19 11.25H3a.75.75 0 0 0-.75.75Z" clipRule="evenodd" /></svg>
                             </button>

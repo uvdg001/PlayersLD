@@ -26,6 +26,10 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel
         jerseyNumber: player?.jerseyNumber ?? null, // Default to null, not undefined
         alternativeRoles: player?.alternativeRoles || [],
         observations: player?.observations || '',
+        // Campos nuevos
+        phone: player?.phone || '',
+        address: player?.address || '',
+        email: player?.email || '',
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,8 +117,6 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Firebase no permite 'undefined' como valor, pero permite 'null'.
-        // Aquí nos aseguramos de que no se envíe undefined si un campo numérico queda en null (ej. jerseyNumber)
         const dataToSave = { ...formData };
         if (dataToSave.jerseyNumber === undefined) {
              dataToSave.jerseyNumber = null;
@@ -216,7 +218,26 @@ export const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Datos de Contacto (NUEVO BLOQUE) */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                <h4 className="text-md font-semibold text-gray-700 dark:text-gray-300 mb-3">Datos de Contacto</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="phone" className="block text-sm font-medium">Celular</label>
+                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+54 9 ..." className={inputClass} />
+                    </div>
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium">Email</label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="nombre@ejemplo.com" className={inputClass} />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label htmlFor="address" className="block text-sm font-medium">Dirección</label>
+                        <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Calle 123" className={inputClass} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
                  <div>
                     <label className="block text-sm font-medium">Rol Alternativo 1</label>
                      <select 
