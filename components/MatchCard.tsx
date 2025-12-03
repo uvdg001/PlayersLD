@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { Match, AttendanceStatus, Teams, Player, PaymentStatus, PlayerMatchStatus, MyTeam, Opponent } from '../types.ts';
 import { PlayerRole } from '../types.ts';
@@ -369,6 +368,13 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                             <h2 className="text-3xl md:text-4xl font-black uppercase tracking-widest px-4 py-2 rounded-xl inline-block shadow-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                                 FECHA {match.tournamentRound}
                             </h2>
+                            <p className={`text-sm font-bold mt-2 uppercase tracking-wide ${
+                                match.status === 'FINALIZADO' ? 'text-blue-600 dark:text-blue-400' :
+                                match.status === 'SUSPENDIDO' ? 'text-red-600 dark:text-red-400' :
+                                'text-green-600 dark:text-green-400'
+                            }`}>
+                                {match.status}
+                            </p>
                         </div>
                     )}
                      <div className="text-right hidden md:block">
