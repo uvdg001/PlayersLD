@@ -30,6 +30,11 @@ export interface Player {
     adminExpires?: string; // ISO string
     isSuperAdmin?: boolean; // True if this player is the super admin
     observations?: string; // Nuevo campo para notas
+    
+    // Datos de contacto
+    phone?: string;
+    address?: string;
+    email?: string;
 }
 
 export type Page = 'home' | 'fixture' | 'tournaments' | 'venues' | 'opponents' | 'my-team' | 'statistics' | 'treasury' | 'help' | 'chat' | 'logistics';
