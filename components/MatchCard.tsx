@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Match, AttendanceStatus, Teams, Player, PaymentStatus, PlayerMatchStatus, MyTeam, Opponent } from '../types.ts';
 import { PlayerRole } from '../types.ts';
@@ -257,9 +258,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, players, currentUse
     const TalkIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97ZM6.75 8.25a.75.75 0 0 1 .75-.75h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5H12a.75.75 0 0 0 0-1.5H7.5Z" clipRule="evenodd" /></svg> );
     const LocationIcon = ( <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" /></svg> );
     
-    // ... logic for confirmedPlayers, share, score
-    const confirmedPlayers = match.playerStatuses.filter(p => p.attendanceStatus === AttendanceStatusEnum.CONFIRMED);
+    // Helper to filter players
+    const isStaff = (p: Player | undefined) => p?.role === PlayerRole.DT || p?.role === PlayerRole.AYUDANTE;
+    const getPlayer = (id: number) => players.find(p => p.id === id);
+
+    // Logic for counts (Excluding Staff)
+    const confirmedPlayers = match.playerStatuses.filter(p => {
+        const player = getPlayer(p.playerId);
+        return p.attendanceStatus === AttendanceStatusEnum.CONFIRMED && !isStaff(player);
+    });
     const confirmedCount = confirmedPlayers.length;
+
     const mapUrl = match.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.address)}` : '#';
     const myTeamScore = useMemo(() => 
         match.playerStatuses.reduce((total, ps) => 
@@ -267,7 +276,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, players, currentUse
     [match.playerStatuses]);
     const opponent = opponents.find(o => o.id === match.opponentId);
     
-    // Variables nuevas
     const userFinishedVoting = match.finishedVoters?.includes(currentUser.id);
     const userIsStaff = currentUser.role === 'DT' || currentUser.role === 'Ayudante';
     const eligiblePlayersForRating = players.filter(player => 
@@ -286,10 +294,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, players, currentUse
         }
     };
 
-    const handleShare = async () => { /* ... código existente de share ... */
-        const confirmed = confirmedPlayers.map(p => players.find(pl => pl.id === p.playerId)?.nickname || 'Desconocido');
-        const doubtful = match.playerStatuses.filter(p => p.attendanceStatus === AttendanceStatusEnum.DOUBTFUL).map(p => players.find(pl => pl.id === p.playerId)?.nickname || 'Desconocido');
-        const absent = match.playerStatuses.filter(p => p.attendanceStatus === AttendanceStatusEnum.ABSENT).map(p => players.find(pl => pl.id === p.playerId)?.nickname || 'Desconocido');
+    const handleShare = async () => { 
+        // Filter out staff for sharing list
+        const getNamesByStatus = (status: AttendanceStatusEnum) => {
+            return match.playerStatuses
+                .filter(p => p.attendanceStatus === status)
+                .map(p => getPlayer(p.playerId))
+                .filter(p => p && !isStaff(p))
+                .map(p => p!.nickname || 'Desconocido');
+        };
+
+        const confirmed = getNamesByStatus(AttendanceStatusEnum.CONFIRMED);
+        const doubtful = getNamesByStatus(AttendanceStatusEnum.DOUBTFUL);
+        const absent = getNamesByStatus(AttendanceStatusEnum.ABSENT);
 
         const shareText = `
 *⚽ PARTIDO F50 SÁBADOS ⚽*
@@ -425,7 +442,7 @@ ${absent.length > 0 ? absent.map(name => `- ${name}`).join('\n') : 'Nadie'}
                                     onClick={() => setIsAdminModalOpen(true)}
                                     className="px-4 py-2 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-black transition-colors flex items-center gap-2 text-sm"
                                 >
-                                    🛠️ Administrar Partido
+                                    🛠️ Cargar Datos / Admin
                                 </button>
                                 <span className="text-[10px] text-gray-500 mt-1 dark:text-gray-400">Goles, Tarjetas y Asistencia Masiva</span>
                             </div>

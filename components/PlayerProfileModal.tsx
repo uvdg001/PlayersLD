@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import type { Player, Match, Opponent, PlayerRole } from '../types.ts';
 import { AttendanceStatus } from '../types.ts';
@@ -100,24 +101,16 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({ player, 
 *⚽ Goles Totales:* ${stats.goals}
 *📈 Récord:* ${stats.won}G - ${stats.drawn}E - ${stats.lost}P
 
-¡Un crack! 🔥
-        `;
+¡Un crack! 🔥`.trim();
 
         try {
-            if (navigator.share) {
-                await navigator.share({ title: `Ficha de ${player.nickname}`, text: shareText.trim() });
-            } else {
-                throw new Error('Share API not available');
-            }
-        } catch (error) {
-            console.error("Error al compartir:", error);
-            try {
-                await navigator.clipboard.writeText(shareText.trim());
-                toast.success('¡Ficha copiada al portapapeles!');
-            } catch (copyError) {
-                toast.error('No se pudo compartir ni copiar.');
-            }
+            await navigator.clipboard.writeText(shareText);
+            toast.success('¡Ficha copiada! Abriendo WhatsApp...');
+        } catch (copyError) {
+            console.error(copyError);
         }
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+        window.open(whatsappUrl, '_blank');
     };
 
     const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });

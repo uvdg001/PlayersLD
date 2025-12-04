@@ -55,9 +55,10 @@ export const AttendanceGrid: React.FC<AttendanceGridProps> = ({ playerStatuses, 
         // El staff se mantiene alfabético puro o por jerarquía, aquí usamos híbrido también para consistencia visual
         staff.sort(sortHybrid);
 
-        const confirmedCount = allParticipants.filter(p => p.status === AttendanceStatus.CONFIRMED).length;
-        const doubtfulCount = allParticipants.filter(p => p.status === AttendanceStatus.DOUBTFUL).length;
-        const absentCount = allParticipants.filter(p => p.status === AttendanceStatus.ABSENT).length;
+        // Contadores SOLO de jugadores de campo
+        const confirmedCount = fieldPlayers.filter(p => p.status === AttendanceStatus.CONFIRMED).length;
+        const doubtfulCount = fieldPlayers.filter(p => p.status === AttendanceStatus.DOUBTFUL).length;
+        const absentCount = fieldPlayers.filter(p => p.status === AttendanceStatus.ABSENT).length;
         
         return { staff, sortedFieldPlayers, confirmedCount, doubtfulCount, absentCount };
 
