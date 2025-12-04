@@ -20,6 +20,7 @@ import { LogisticsPage } from './components/pages/LogisticsPage.tsx';
 import { HelpPage } from './components/pages/HelpPage.tsx';
 import { MatchForm } from './components/forms/MatchForm.tsx';
 import { BirthdayCard } from './components/BirthdayCard.tsx';
+import { PlayerForm } from './components/PlayerForm.tsx'; // Import PlayerForm for profile editing
 
 import { useToast } from './hooks/useToast.ts';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
@@ -74,6 +75,9 @@ const App: React.FC = () => {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [isGeneratingTeams, setIsGeneratingTeams] = useState(false);
     const [isFirebaseOnline, setIsFirebaseOnline] = useState(true);
+    
+    // Edit Profile State
+    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
     // --- DATOS DE FIREBASE ---
     const [players, setPlayers] = useState<Player[]>([]);
@@ -94,12 +98,10 @@ const App: React.FC = () => {
     useEffect(() => {
         const db = getFirestoreInstance();
         if (!db) {
-            // Solo notificar una vez para evitar bucles
             setIsFirebaseOnline((prev) => {
                 if (prev) toast.error("Modo Offline: No se pudo conectar a Firebase. Revisa tu configuración.");
                 return false;
             });
-            // Cargar datos iniciales en memoria si offline
             setPlayers(INITIAL_PLAYERS);
             setMyTeam(INITIAL_MY_TEAM);
             return;
@@ -110,7 +112,6 @@ const App: React.FC = () => {
                  const playersEmpty = await isCollectionEmpty('players');
                  if (playersEmpty) {
                      console.log("Sembrando datos iniciales...");
-                     // Sembrar jugadores
                      for (const p of INITIAL_PLAYERS) await saveDocument('players', p.id.toString(), p);
                      await saveDocument('settings', 'appSettings', INITIAL_APP_SETTINGS);
                      await saveDocument('myTeam', 'info', INITIAL_MY_TEAM);
@@ -121,11 +122,10 @@ const App: React.FC = () => {
         };
         checkData();
 
-        // Helper para evitar bucles de re-renderizado
         const handleConnectionError = (err: Error) => {
              console.error("Firebase connection error:", err);
              setIsFirebaseOnline((prev) => {
-                 if (prev) return false; // Solo actualiza si era true
+                 if (prev) return false;
                  return prev;
              });
         };
@@ -487,14 +487,14 @@ const App: React.FC = () => {
         const playerToSave = { ...player, id };
         
         try {
-            console.log("Intentando guardar jugador:", playerToSave);
             await saveDocument('players', id.toString(), playerToSave);
             toast.success("Jugador guardado exitosamente.");
             
-            // Actualizar sesión local solo si el guardado remoto funcionó
             if (currentUser?.id === id) {
                 setCurrentUser(playerToSave as Player);
             }
+            // Close edit profile modal if open
+            if (isEditProfileOpen) setIsEditProfileOpen(false);
         } catch (error: any) {
             console.error("Error FATAL al guardar jugador:", error);
             toast.error(`Error al guardar: ${error.message || 'Desconocido'}`);
@@ -584,7 +584,6 @@ const App: React.FC = () => {
         try {
             await deleteDocument('matches', matchId.toString());
             toast.success("Partido eliminado correctamente.");
-            // Si el partido eliminado es el que se está viendo, volver a home
             if (selectedMatchId === matchId) {
                 setSelectedMatchId(null);
                 setCurrentPage('home');
@@ -616,6 +615,10 @@ const App: React.FC = () => {
         await saveDocument('settings', 'appSettings', { superAdminPlayerId: newAdminId });
         toast.success("Super Admin transferido exitosamente.");
         setAppSettings(prev => ({ ...prev, superAdminPlayerId: newAdminId }));
+    };
+
+    const handleEditProfile = () => {
+        setIsEditProfileOpen(true);
     };
 
     // --- RENDER HELPERS ---
@@ -657,7 +660,7 @@ const App: React.FC = () => {
                         isGeneratingTeams={isGeneratingTeams}
                         allMatches={matches}
                         onSelectMatch={setSelectedMatchId}
-                        onDeleteMatch={handleDeleteMatch} // Pasar la función de borrar
+                        onDeleteMatch={handleDeleteMatch}
                     />
                 ) : (
                     <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -685,6 +688,8 @@ const App: React.FC = () => {
                         onUpdatePlayer={handleSavePlayer}
                         onTogglePinAuth={handleTogglePinAuth}
                         isPinAuthEnabled={appSettings.isPinAuthEnabled}
+                        matches={matches} // Pasar matches
+                        opponents={opponents} // Pasar opponents
                     />
                 );
             case 'fixture':
@@ -698,7 +703,7 @@ const App: React.FC = () => {
                         setCurrentPage={setCurrentPage}
                         setSelectedMatchId={setSelectedMatchId}
                         onOpenMatchForm={setMatchFormParams}
-                        onDeleteMatch={handleDeleteMatch} // Pasar funcion
+                        onDeleteMatch={handleDeleteMatch}
                         isAdmin={isAdmin}
                     />
                 );
@@ -777,6 +782,7 @@ const App: React.FC = () => {
                 currentPage={currentPage}
                 setCurrentPage={setCurrentPage}
                 isAdmin={isAdmin}
+                onEditProfile={handleEditProfile}
             />
 
             <main className="container mx-auto px-4 py-6 md:pb-24">
@@ -816,15 +822,17 @@ const App: React.FC = () => {
                 </div>
             </main>
 
-            {/* Floating Chat Button (Mobile) */}
-            <button
-                onClick={() => setIsChatOpen(true)}
-                className="fixed bottom-6 right-6 lg:hidden bg-green-600 text-white p-4 rounded-full shadow-lg z-50 hover:bg-green-700 transition-colors animate-bounce-subtle"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-            </button>
+            {/* Floating Chat Button (Mobile) - HIDDEN WHEN CHAT IS OPEN */}
+            {!isChatOpen && (
+                <button
+                    onClick={() => setIsChatOpen(true)}
+                    className="fixed bottom-6 right-6 lg:hidden bg-green-600 text-white p-4 rounded-full shadow-lg z-50 hover:bg-green-700 transition-colors animate-bounce-subtle"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </button>
+            )}
 
             {/* Modals */}
             {isRosterModalOpen && (
@@ -841,6 +849,20 @@ const App: React.FC = () => {
                 />
             )}
 
+            {isEditProfileOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4" onClick={() => setIsEditProfileOpen(false)}>
+                    <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="p-6">
+                            <PlayerForm
+                                player={currentUser}
+                                onSave={handleSavePlayer}
+                                onCancel={() => setIsEditProfileOpen(false)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isMatchFormOpen && (
                 <MatchForm
                     match={matchFormParams?.match}
@@ -850,7 +872,7 @@ const App: React.FC = () => {
                     opponents={opponents}
                     tournamentMatches={matchFormParams?.tournamentId ? matches.filter(m => m.tournamentId === matchFormParams?.tournamentId) : []}
                     nextRoundNumber={matchFormParams?.tournamentId ? (matches.filter(m => m.tournamentId === matchFormParams?.tournamentId).length + 1) : 1}
-                    tournamentId={matchFormParams?.tournamentId} // Nuevo prop
+                    tournamentId={matchFormParams?.tournamentId}
                 />
             )}
 
