@@ -1,0 +1,38 @@
+=== PLAN DE DESARROLLO: Futbol_LD ===
+
+OBJETIVO: Crear una nueva aplicación web para la gestión de equipos de fútbol, con un backend en Node.js y un frontend moderno en React.
+
+---
+PLAN GENERAL
+---
+1.  **Configuración del Backend (Servidor):**
+    *   Crear la estructura de carpetas.
+    *   Inicializar el proyecto Node.js.
+    *   Instalar dependencias (Express, CORS).
+    *   Crear archivos base (index.js, archivos de datos JSON).
+
+2.  **Configuración del Frontend (Cliente):**
+    *   Crear la aplicación React usando `create-react-app` con TypeScript.
+    *   Estructurar las carpetas y componentes principales.
+
+3.  **Desarrollo de Funcionalidades (Backend y Frontend):**
+    *   **Gestión de Plantilla:** API y UI para añadir, ver, editar y eliminar jugadores.
+    *   **Gestión de Convocatoria:** API y UI para crear un partido (con fecha) y asignar jugadores a las listas (convocados, dudas, bajas). Implementar la regla de bloqueo si no hay fecha.
+    *   **Gestión de Alineación:** UI para arrastrar jugadores desde la lista de convocados a una cancha virtual.
+
+---
+ESTADO ACTUAL (7 de noviembre de 2025)
+---
+
+**COMPLETADO:**
+[✓] Creación de la carpeta principal del proyecto: `Futbol_LD`.
+[✓] Creación de la subcarpeta para el backend: `Futbol_LD/server`.
+[✓] Inicialización del proyecto Node.js en la carpeta `server`.
+[✓] Instalación de las dependencias `express` y `cors`.
+[✓] Creación de los archivos base del servidor: `index.js`, `listabuenafe.json`, `convocatoria.json`.
+
+**PENDIENTE (Próximo paso):**
+[ ] Crear la aplicación base del frontend (cliente) usando el comando `npx create-react-app client --template typescript`.
+[ ] Desarrollar las 3 secciones principales de la aplicación (Plantilla, Convocatoria, Alineación).
+[ ] Desarrollar los endpoints de la API en el backend para dar soporte a las funcionalidades.
+[ ] Conectar el frontend con el backend.

@@ -1,0 +1,55 @@
+
+import type { Player, Teams } from "../types";
+import { PlayerRole } from "../types";
+
+/**
+ * Genera dos equipos aleatorios.
+ * Ya no utiliza IA, sino un algoritmo de mezcla aleatoria (Shuffle).
+ */
+export const generateTeamsAI = async (players: Player[]): Promise<Teams> => {
+    // Simulamos un pequeño tiempo de espera para que se sienta que está "pensando"
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Filtrar al cuerpo técnico para que no sean incluidos en los equipos
+    const fieldPlayers = players.filter(p => p.role !== PlayerRole.DT && p.role !== PlayerRole.AYUDANTE);
+    
+    return randomTeams(fieldPlayers);
+};
+
+/**
+ * Devuelve una frase motivacional de una lista local.
+ */
+export const generateMotivationalQuote = async (): Promise<string> => {
+    const quotes = [
+        "Hoy es un buen día para ganar.",
+        "El talento gana partidos, pero el trabajo en equipo gana campeonatos.",
+        "No cuentes los días, haz que los días cuenten.",
+        "La actitud es una pequeña cosa que hace una gran diferencia.",
+        "Juega con pasión, gana con honor.",
+        "Si no pierdes, no puedes disfrutar de las victorias.",
+        "El fútbol es lo más importante de las cosas menos importantes.",
+        "Suda la camiseta.",
+        "Lo difícil se hace, lo imposible se intenta."
+    ];
+    // Retorna una frase al azar
+    return quotes[Math.floor(Math.random() * quotes.length)];
+};
+
+// Lógica de mezcla aleatoria
+const randomTeams = (players: Player[]): Teams => {
+    // Algoritmo Fisher-Yates Shuffle
+    const shuffled = [...players];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const mid = Math.ceil(shuffled.length / 2);
+    const teamA = shuffled.slice(0, mid).map(p => `${p.firstName} '${p.nickname}' ${p.lastName}`);
+    const teamB = shuffled.slice(mid).map(p => `${p.firstName} '${p.nickname}' ${p.lastName}`);
+
+    return {
+        teamA,
+        teamB
+    };
+};
