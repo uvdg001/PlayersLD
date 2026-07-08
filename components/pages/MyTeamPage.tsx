@@ -21,7 +21,8 @@ export const MyTeamPage: React.FC<MyTeamPageProps> = ({ team, onSave, isAdmin, i
         name: '', 
         shieldUrl: '', 
         primaryColor: '#4f46e5', 
-        secondaryColor: '#ffffff' 
+        secondaryColor: '#ffffff',
+        leagueUrl: ''
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const toast = useToast();
@@ -32,7 +33,8 @@ export const MyTeamPage: React.FC<MyTeamPageProps> = ({ team, onSave, isAdmin, i
                 name: team.name || '',
                 shieldUrl: team.shieldUrl || '',
                 primaryColor: team.primaryColor || '#4f46e5',
-                secondaryColor: team.secondaryColor || '#ffffff'
+                secondaryColor: team.secondaryColor || '#ffffff',
+                leagueUrl: team.leagueUrl || ''
             });
         } 
     }, [team]);
@@ -103,6 +105,11 @@ export const MyTeamPage: React.FC<MyTeamPageProps> = ({ team, onSave, isAdmin, i
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Equipo</label>
                             <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Los Leones FC" />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">🌐 Link Web de la Liga (Opcional)</label>
+                            <input type="url" name="leagueUrl" value={formData.leagueUrl || ''} onChange={handleChange} className="w-full rounded-md border-gray-300 shadow-sm p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://liga.com/posiciones" title="Ej: El link oficial donde se ven los puntos" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -180,12 +187,13 @@ export const MyTeamPage: React.FC<MyTeamPageProps> = ({ team, onSave, isAdmin, i
                             <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Autenticación por PIN</p>
                             <p className="text-xs text-gray-500">Si está activo, los jugadores deben ingresar su PIN para entrar.</p>
                         </div>
-                        <button onClick={onTogglePinAuth} className={`${isPinAuthEnabled ? 'bg-green-600' : 'bg-gray-400'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}>
-                            <span className={`${isPinAuthEnabled ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}/>
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
+                                                <button onClick={onTogglePinAuth} className={`${isPinAuthEnabled ? 'bg-green-600' : 'bg-gray-400'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}>
+                                                    <span className={`${isPinAuthEnabled ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        };
+                        

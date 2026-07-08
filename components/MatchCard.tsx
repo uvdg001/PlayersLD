@@ -8,6 +8,7 @@ import { AttendanceGrid } from './AttendanceGrid.tsx';
 import { MatchAdminModal } from './MatchAdminModal.tsx'; 
 import { saveDocument } from '../services/firebaseService.ts'; 
 import { useLanguage } from '../contexts/LanguageContext.tsx';
+import { getWhatsAppShareText } from '../lib/shareUtils.ts';
 
 interface MatchCardProps {
     teamId: string;
@@ -32,30 +33,48 @@ interface MatchCardProps {
     isGeneratingTeams: boolean;
     onDeleteMatch?: (matchId: number) => void;
     onViewProfile?: (player: Player) => void;
+    onViewSummary?: (matchId: number) => void;
+    compact?: boolean;
 }
 
-const Scoreboard: React.FC<{ matchId: number; myTeamName: string; opponentName: string; opponentJerseyColor?: string; myTeamScore: number; opponentScore: number; onOpponentScoreChange: (matchId: number, newScore: number) => Promise<void>; isAdmin: boolean; }> = ({ matchId, myTeamName, opponentName, opponentJerseyColor, myTeamScore, opponentScore, onOpponentScoreChange, isAdmin }) => {
+const Scoreboard: React.FC<{ matchId: number; myTeamName: string; opponentName: string; opponentJerseyColor?: string; opponentSecondaryJerseyColor?: string; myTeamScore: number; opponentScore: number; onOpponentScoreChange: (matchId: number, newScore: number) => Promise<void>; isAdmin: boolean; onViewSummary?: (mid: number) => void; }> = ({ matchId, myTeamName, opponentName, opponentJerseyColor, opponentSecondaryJerseyColor, myTeamScore, opponentScore, onOpponentScoreChange, isAdmin, onViewSummary }) => {
     const [isEditingOpponentScore, setIsEditingOpponentScore] = useState(false);
     const [tempOpponentScore, setTempOpponentScore] = useState(opponentScore.toString());
     const handleSaveOpponentScore = () => { onOpponentScoreChange(matchId, parseInt(tempOpponentScore, 10)); setIsEditingOpponentScore(false); };
     
     return (
-        <div className="my-2 p-3 bg-gray-900 text-white rounded-xl flex flex-col items-center justify-around shadow-md border border-gray-700">
+        <div 
+            onClick={() => onViewSummary && onViewSummary(matchId)}
+            className="my-2 p-3 bg-gray-900 text-white rounded-xl flex flex-col items-center justify-around shadow-md border border-gray-700 cursor-pointer transform hover:scale-[1.02] active:scale-95 transition-all group"
+        >
             <div className="flex items-center justify-around w-full">
                 <div className="text-center w-1/3"><p className="font-black text-xs md:text-sm uppercase tracking-tighter truncate text-white/90">{myTeamName}</p></div>
                 <div className="text-center font-black text-3xl md:text-4xl flex items-center space-x-2">
                     <span className="text-white">{myTeamScore}</span><span className="text-gray-600">-</span>
                     {isEditingOpponentScore && isAdmin ? (
-                         <input type="number" value={tempOpponentScore} onChange={(e) => setTempOpponentScore(e.target.value)} onBlur={handleSaveOpponentScore} onKeyDown={(e) => e.key === 'Enter' && handleSaveOpponentScore()} className="w-12 text-center bg-gray-700 border border-blue-500 rounded text-white text-2xl" autoFocus />
-                    ) : ( <span onClick={() => isAdmin && setIsEditingOpponentScore(true)} className={`text-white ${isAdmin ? "cursor-pointer" : ""}`}>{opponentScore}</span> )}
+                         <input type="number" value={tempOpponentScore} onClick={e => e.stopPropagation()} onChange={(e) => setTempOpponentScore(e.target.value)} onBlur={handleSaveOpponentScore} onKeyDown={(e) => e.key === 'Enter' && handleSaveOpponentScore()} className="w-12 text-center bg-gray-700 border border-blue-500 rounded text-white text-2xl" autoFocus />
+                    ) : ( <span onClick={(e) => { if(isAdmin) { e.stopPropagation(); setIsEditingOpponentScore(true); } }} className={`text-white ${isAdmin ? "cursor-help" : ""}`}>{opponentScore}</span> )}
                 </div>
-                <div className="text-center w-1/3"><div className="flex items-center justify-center gap-1">{opponentJerseyColor && (<div className="w-2 h-2 rounded-full" style={{ backgroundColor: opponentJerseyColor }}></div>)}<p className="font-black text-xs md:text-sm uppercase tracking-tighter truncate text-white/90">{opponentName}</p></div></div>
+                <div className="text-center w-1/3">
+                    <div className="flex items-center justify-center gap-1">
+                        <div className="flex -space-x-1">
+                            {opponentJerseyColor && (
+                                <div className="w-2.5 h-2.5 rounded-full border border-gray-800" style={{ backgroundColor: opponentJerseyColor }}></div>
+                            )}
+                            {opponentSecondaryJerseyColor && (
+                                <div className="w-2.5 h-2.5 rounded-full border border-gray-800" style={{ backgroundColor: opponentSecondaryJerseyColor }}></div>
+                            )}
+                        </div>
+                        <p className="font-black text-xs md:text-sm uppercase tracking-tighter truncate text-white/90">{opponentName}</p>
+                    </div>
+                </div>
             </div>
+            <p className="text-[8px] font-black text-indigo-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest">Ver Resumen Completo</p>
         </div>
     );
 };
 
-export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, currentUser, myTeam, opponents, onPlayerStatusChange, onPlayerStatsChange, onCourtFeeChange, onUpdateMatchDetails, onStandingsChange, onToggleRatingStatus, onOpponentScoreChange, teams, onGenerateTeams, isAdmin, allMatches, onSelectMatch, isGeneratingTeams, onDeleteMatch, onViewProfile }) => {
+export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, currentUser, myTeam, opponents, onPlayerStatusChange, onPlayerStatsChange, onCourtFeeChange, onUpdateMatchDetails, onStandingsChange, onToggleRatingStatus, onOpponentScoreChange, teams, onGenerateTeams, isAdmin, allMatches, onSelectMatch, isGeneratingTeams, onDeleteMatch, onViewProfile, onViewSummary, compact = false }) => {
     const { t } = useLanguage();
     const toast = useToast();
     const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -117,7 +136,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, cu
 
     const handleSecureDelete = () => {
         const confirmation = window.prompt("⚠️ ¿Borrar este partido?\nEscribe: ELIMINAR");
-        if (confirmation === "ELIMINAR") {
+        if (confirmation && confirmation.trim().toUpperCase() === "ELIMINAR") {
             if (onDeleteMatch) onDeleteMatch(match.id);
         }
     };
@@ -131,37 +150,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, cu
     };
 
     const handleShare = async () => {
-        let shareText = '';
-        const oppName = opponent?.name || 'Rival';
-
-        if (match.status === 'FINALIZADO') {
-            shareText = `*⚽ RESULTADO FINAL: vs ${oppName}*\n`;
-            shareText += `🗓️ ${match.date}\n`;
-            shareText += `🏟️ ${match.location}\n`;
-            shareText += `--------------------------\n`;
-            shareText += `🔥 *${myTeam?.name || 'PLAYERS LD'}* ${myTeamScore} - ${match.opponentScore || 0} *${oppName}*\n`;
-            shareText += `--------------------------\n\n`;
-
-            const goalScorers = match.playerStatuses
-                .filter(ps => ps.attendanceStatus === AttendanceStatus.CONFIRMED)
-                .map(ps => {
-                    const p = players.find(x => x.id === ps.playerId);
-                    const total = (ps.goalsPlay || 0) + (ps.goalsHeader || 0) + (ps.goalsPenalty || 0) + (ps.goalsSetPiece || 0);
-                    return total > 0 ? { nickname: p?.nickname, total } : null;
-                })
-                .filter(Boolean);
-
-            if (goalScorers.length > 0) {
-                shareText += `⚽ *GOLEADORES:*\n`;
-                goalScorers.forEach(g => shareText += `- ${g?.nickname}: ${g?.total}\n`);
-                shareText += `\n`;
-            }
-            shareText += `🗣️ _¡Gran partido equipo!_`;
-        } else {
-            const getNames = (s: AttendanceStatus) => match.playerStatuses.filter(p => p.attendanceStatus === s && !isStaff(players.find(pl => pl.id === p.playerId))).map(p => players.find(pl => pl.id === p.playerId)?.nickname).join('\n');
-            shareText = `*${t.appTitle}*\n🗓️ ${match.date} ${match.time}\n📍 ${match.location}\n\n*${t.callUp}*\n✅ (${confirmedCount}):\n${getNames(AttendanceStatus.CONFIRMED) || '-'}\n\n❓:\n${getNames(AttendanceStatus.DOUBTFUL) || '-'}\n\n❌:\n${getNames(AttendanceStatus.ABSENT) || '-'}`;
-        }
-
+        const shareText = getWhatsAppShareText(match, players, myTeam, opponents);
         window.location.href = `whatsapp://send?text=${encodeURIComponent(shareText)}`;
     };
 
@@ -174,8 +163,20 @@ export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, cu
                  <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                         {allMatches && onSelectMatch ? (
-                            <select value={match.id} onChange={(e) => onSelectMatch(Number(e.target.value))} className="bg-transparent font-black text-sm text-gray-800 dark:text-white outline-none cursor-pointer border-b border-indigo-200">
-                                {allMatches.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(m => (<option key={m.id} value={m.id}>{m.date}</option>))}
+                            <select 
+                                value={match.id} 
+                                onChange={(e) => onSelectMatch(Number(e.target.value))} 
+                                className="bg-transparent font-black text-sm text-gray-800 dark:text-white outline-none cursor-pointer border-b border-indigo-200 max-w-[150px] truncate"
+                            >
+                                {allMatches
+                                    .filter(m => m.tournamentId === match.tournamentId) // Filter by current tournament
+                                    .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.date} {m.tournamentRound ? `(F${m.tournamentRound})` : ''}
+                                        </option>
+                                    ))
+                                }
                             </select>
                         ) : <span className="font-black text-sm text-gray-800 dark:text-white uppercase italic tracking-tight">{t.nextMatch}</span>}
                     </div>
@@ -254,14 +255,30 @@ export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, cu
                     </div>
                 </div>
 
-                <Scoreboard matchId={match.id} myTeamName={myTeam?.name || 'LD'} opponentName={opponent?.name || 'Rival'} opponentJerseyColor={opponent?.jerseyColor} myTeamScore={myTeamScore} opponentScore={match.opponentScore || 0} onOpponentScoreChange={onOpponentScoreChange} isAdmin={isAdmin} />
+                <Scoreboard 
+                    matchId={match.id} 
+                    myTeamName={myTeam?.name || 'LD'} 
+                    opponentName={opponent?.name || 'Rival'} 
+                    opponentJerseyColor={opponent?.jerseyColor} 
+                    opponentSecondaryJerseyColor={opponent?.secondaryJerseyColor}
+                    myTeamScore={myTeamScore} 
+                    opponentScore={match.opponentScore || 0} 
+                    onOpponentScoreChange={onOpponentScoreChange} 
+                    isAdmin={isAdmin} 
+                    onViewSummary={onViewSummary} 
+                />
                 
                 <div className="flex flex-col gap-3 mt-4">
                     <div className="flex justify-between items-center">
                         <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase italic tracking-tight">Convocatoria ({confirmedCount})</h3>
                         <div className="flex gap-2">
-                            {isAdmin && <button onClick={handleAdminOpen} className="px-3 py-1.5 bg-gray-800 text-white font-black rounded-lg shadow shadow-black/20 text-[10px] uppercase tracking-tighter transition-transform active:scale-95">{match.status === 'FINALIZADO' ? '🔒 Admin' : '🛠️ Admin'}</button>}
-                            <button onClick={handleShare} className="px-3 py-1.5 bg-indigo-600 text-white font-black rounded-lg shadow shadow-indigo-500/20 text-[10px] uppercase tracking-tighter transition-transform active:scale-95">{match.status === 'FINALIZADO' ? 'Resumen WA' : 'WhatsApp'}</button>
+                            {isAdmin && <button onClick={handleAdminOpen} className="px-4 py-2 bg-gray-800 text-white font-black rounded-xl shadow shadow-black/20 text-[10px] uppercase tracking-tighter transition-transform active:scale-95">{match.status === 'FINALIZADO' ? '🔒 Admin' : '🛠️ Admin'}</button>}
+                            <button 
+                                onClick={handleShare} 
+                                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/40 text-xs uppercase tracking-tighter transition-all transform active:scale-90 animate-pulse-slow flex items-center gap-2"
+                            >
+                                <span className="text-sm">📱</span> {match.status === 'FINALIZADO' ? 'Enviar Resumen' : 'Enviar Lista WA'}
+                            </button>
                         </div>
                     </div>
 
@@ -275,18 +292,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({ teamId, match, players, cu
                     )}
                 </div>
                 
-                <AttendanceGrid 
-                    playerStatuses={match.playerStatuses} 
-                    players={players} 
-                    onPlayerStatusChange={(pId, status) => onPlayerStatusChange(match.id, pId, status)} 
-                    onPlayerStatsChange={(pId, field, value) => onPlayerStatsChange(match.id, pId, field, value)}
-                    currentUser={currentUser} 
-                    isAdmin={isAdmin} 
-                    matchStatus={match.status} 
-                    onViewProfile={onViewProfile} 
-                />
+                {!compact && (
+                    <AttendanceGrid 
+                        playerStatuses={match.playerStatuses} 
+                        players={players} 
+                        onPlayerStatusChange={(pId, status) => onPlayerStatusChange(match.id, pId, status)} 
+                        onPlayerStatsChange={(pId, field, value) => onPlayerStatsChange(match.id, pId, field, value)}
+                        currentUser={currentUser} 
+                        isAdmin={isAdmin} 
+                        match={match} // Pasamos el partido entero
+                        matchStatus={match.status} 
+                        onViewProfile={onViewProfile}
+                    />
+                )}
 
-                {isAdmin && confirmedPlayers.length > 0 && match.status === 'PROGRAMADO' && (
+                {isAdmin && confirmedPlayers.length > 0 && match.status === 'PROGRAMADO' && !compact && (
                     <div className="mt-4 text-center pt-4 border-t-2 border-dashed border-gray-100 dark:border-gray-700">
                         <button onClick={onGenerateTeams} className="px-6 py-2.5 bg-green-600 text-white font-black rounded-xl shadow-lg hover:bg-green-700 text-xs uppercase tracking-widest transition-all active:scale-95" disabled={isGeneratingTeams}>{isGeneratingTeams ? 'MEZCLANDO...' : 'ARMAR EQUIPOS'}</button>
                         {teams && <TeamLineup teams={teams} />}

@@ -14,6 +14,7 @@ export const OpponentForm: React.FC<OpponentFormProps> = ({ opponent, onSave, on
         shieldUrl: opponent?.shieldUrl || '',
         skillLevel: opponent?.skillLevel || 3,
         jerseyColor: opponent?.jerseyColor || '#FFFFFF',
+        secondaryJerseyColor: opponent?.secondaryJerseyColor || '#000000',
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -87,15 +88,27 @@ export const OpponentForm: React.FC<OpponentFormProps> = ({ opponent, onSave, on
                 <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClass} />
             </div>
 
-            <div>
-                <label htmlFor="jerseyColor" className="block text-sm font-medium">Color de Camiseta (Opcional)</label>
-                <input 
-                    type="color" 
-                    name="jerseyColor" 
-                    value={formData.jerseyColor} 
-                    onChange={handleChange} 
-                    className="mt-1 block w-full h-10 p-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer"
-                />
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="jerseyColor" className="block text-xs font-black text-gray-500 uppercase mb-1">Color Principal</label>
+                    <input 
+                        type="color" 
+                        name="jerseyColor" 
+                        value={formData.jerseyColor} 
+                        onChange={handleChange} 
+                        className="mt-1 block w-full h-10 p-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="secondaryJerseyColor" className="block text-xs font-black text-gray-500 uppercase mb-1">Color Secundario</label>
+                    <input 
+                        type="color" 
+                        name="secondaryJerseyColor" 
+                        value={formData.secondaryJerseyColor} 
+                        onChange={handleChange} 
+                        className="mt-1 block w-full h-10 p-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md cursor-pointer"
+                    />
+                </div>
             </div>
 
             <div>

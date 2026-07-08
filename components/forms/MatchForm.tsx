@@ -56,14 +56,15 @@ export const MatchForm: React.FC<MatchFormProps> = ({ match = null, onSave, onCa
                 opponentScore: match.opponentScore?.toString() || '0',
             };
         }
+        const initialVenue = venues[0];
         return {
             date: new Date().toISOString().split('T')[0],
             time: '15:00',
             warmUpTime: '14:30',
             coachTalkTime: '14:45',
-            courtFee: '100000',
+            courtFee: initialVenue?.defaultPrice?.toString() || '100000',
             tournamentRound: nextRoundNumber?.toString() || '1',
-            venueId: venues[0]?.id.toString() || '',
+            venueId: initialVenue?.id.toString() || '',
             opponentId: opponents[0]?.id.toString() || '',
             courtNumber: '',
             status: 'PROGRAMADO' as MatchStatus,
@@ -74,6 +75,12 @@ export const MatchForm: React.FC<MatchFormProps> = ({ match = null, onSave, onCa
     const [formData, setFormData] = useState(getInitialState);
     
     useEffect(() => {
+        if (!formData.opponentId && opponents.length > 0) {
+            setFormData(prev => ({ ...prev, opponentId: opponents[0].id.toString() }));
+        }
+    }, [opponents]);
+
+    useEffect(() => {
         if (!match && nextRoundNumber) {
              setFormData(prev => ({ ...prev, tournamentRound: nextRoundNumber.toString() }));
         }
@@ -81,6 +88,21 @@ export const MatchForm: React.FC<MatchFormProps> = ({ match = null, onSave, onCa
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        
+        // Lógica especial: Si cambia la cancha, cargamos su precio y número por defecto
+        if (name === 'venueId') {
+            const selectedVenue = venues.find(v => v.id === parseInt(value, 10));
+            if (selectedVenue) {
+                setFormData(prev => ({ 
+                    ...prev, 
+                    venueId: value,
+                    courtFee: selectedVenue.defaultPrice?.toString() || prev.courtFee,
+                    courtNumber: selectedVenue.courtNumber || '' 
+                }));
+                return;
+            }
+        }
+        
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -175,13 +197,24 @@ export const MatchForm: React.FC<MatchFormProps> = ({ match = null, onSave, onCa
                         </div>
 
                         {/* BLOQUE 3: LUGAR Y RIVAL */}
-                         <div>
+                         <div className="md:col-span-1">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cancha / Predio</label>
                             <select name="venueId" value={formData.venueId} onChange={handleChange} required className={inputClass}>
                                 {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                             </select>
                         </div>
-                         <div>
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-bold text-indigo-600 uppercase mb-1">Número / Sector</label>
+                            <input 
+                                type="text" 
+                                name="courtNumber" 
+                                value={formData.courtNumber} 
+                                onChange={handleChange} 
+                                className={`${inputClass} font-black text-indigo-700 bg-indigo-50 dark:bg-indigo-900/20`} 
+                                placeholder="Ej: 2 o 'Auxiliar'"
+                            />
+                        </div>
+                         <div className="md:col-span-2">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Equipo Rival</label>
                             <select name="opponentId" value={formData.opponentId} onChange={handleChange} required className={inputClass}>
                                 {opponents.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}

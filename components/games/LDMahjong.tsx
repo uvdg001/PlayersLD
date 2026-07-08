@@ -57,7 +57,10 @@ export const LDMahjong: React.FC<LDMahjongProps> = ({ players, myTeam, opponents
         const numPairs = config.pairs;
         
         const items = [];
-        items.push({ id: 'shield', img: myTeam?.shieldUrl || '' });
+        // Probabilidad de 2/3 para agregar el escudo del equipo
+        if (Math.random() < 2/3) {
+            items.push({ id: 'shield', img: myTeam?.shieldUrl || '' });
+        }
         opponents.slice(0, 3).forEach(o => {
             if (items.length < numPairs) items.push({ id: `rival-${o.id}`, img: o.shieldUrl || '' });
         });

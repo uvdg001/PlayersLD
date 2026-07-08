@@ -12,11 +12,66 @@ interface RatingsPageProps {
     onPlayerRatingChange: (matchId: number, raterId: number, rateeId: number, rating: number) => Promise<void>;
     onFinishVoting: (matchId: number) => Promise<void>;
     isAdmin?: boolean;
-    onPardonPlayer?: (matchId: number, playerId: number) => void;
     initialMatchId?: number | null;
 }
 
-export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, opponents, currentUser, onPlayerRatingChange, onFinishVoting, isAdmin, onPardonPlayer, initialMatchId }) => {
+interface AdminRaterRowProps {
+    player: Player;
+    voted: boolean;
+    raterVotes: Record<number, number>;
+    players: Player[];
+}
+
+const AdminRaterRow: React.FC<AdminRaterRowProps> = ({ player, voted, raterVotes, players }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    return (
+        <div className="flex flex-col">
+            <div 
+                className={`flex items-center justify-between p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors ${isExpanded ? 'bg-gray-200 dark:bg-gray-800' : ''}`}
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-gray-400">{player.id}</span>
+                    <span className={`font-bold ${voted ? 'text-green-600' : 'text-red-500'}`}>
+                        {player.nickname}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {voted ? (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-bold">VOTÓ ({Object.keys(raterVotes).length})</span>
+                    ) : (
+                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-bold">PENDIENTE</span>
+                    )}
+                    <span className="text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+                </div>
+            </div>
+            
+            {isExpanded && (
+                <div className="bg-white dark:bg-gray-950 p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 border-t dark:border-gray-800">
+                    {Object.entries(raterVotes).length > 0 ? (
+                        Object.entries(raterVotes).map(([targetId, rating]) => {
+                            const target = players.find(x => x.id === Number(targetId));
+                            return (
+                                <div key={targetId} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-2 rounded border dark:border-gray-800 shadow-sm">
+                                    <img src={target?.photoUrl} className="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-gray-700" alt="" />
+                                    <div className="flex flex-col overflow-hidden">
+                                        <span className="text-[10px] font-bold truncate text-gray-700 dark:text-gray-300">{target?.nickname}</span>
+                                        <span className="text-xs text-yellow-500 font-black">{rating} ★</span>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <p className="col-span-full text-center py-2 text-xs text-gray-500 italic">No hay calificaciones registradas aún.</p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, opponents, currentUser, onPlayerRatingChange, onFinishVoting, isAdmin, initialMatchId }) => {
     const toast = useToast();
     const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +83,14 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
             setSelectedMatchId(initialMatchId);
         }
     }, [initialMatchId]);
+
+    // Si la lista de partidos cambia (cambiaron de torneo), reseteamos la selección local
+    // para que no quede un partido de otro torneo seleccionado "en el fondo"
+    useEffect(() => {
+        if (selectedMatchId && !matches.some(m => m.id === selectedMatchId)) {
+            setSelectedMatchId(null);
+        }
+    }, [matches, selectedMatchId]);
 
     // Filter relevant matches for the "Room"
     const finishedMatches = useMemo(() => {
@@ -41,41 +104,6 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
     const selectedMatch = useMemo(() => {
         return matches.find(m => m.id === selectedMatchId);
     }, [matches, selectedMatchId]);
-
-    // Lógica de Penalización
-    const penaltyCheck = useMemo(() => {
-        const penalties: number[] = []; 
-        const penaltyReasons: Record<number, string> = {};
-
-        const chronologicallySortedMatches = [...finishedMatches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        const missedVotes = chronologicallySortedMatches.filter(m => 
-            m.playerStatuses.some(ps => ps.playerId === currentUser.id && ps.attendanceStatus === AttendanceStatus.CONFIRMED) &&
-            (!m.finishedVoters || !m.finishedVoters.includes(currentUser.id)) &&
-            (!m.pardonedVoters || !m.pardonedVoters.includes(currentUser.id))
-        );
-
-        missedVotes.forEach(missedMatch => {
-            const missedIndex = chronologicallySortedMatches.findIndex(m => m.id === missedMatch.id);
-            if (missedIndex !== -1) {
-                penalties.push(missedMatch.id);
-                penaltyReasons[missedMatch.id] = `No votaste en esta fecha (${missedMatch.date})`;
-
-                for (let i = 1; i <= 2; i++) {
-                    const nextMatch = chronologicallySortedMatches[missedIndex + i];
-                    if (nextMatch) {
-                        penalties.push(nextMatch.id);
-                        if (!penaltyReasons[nextMatch.id]) {
-                            penaltyReasons[nextMatch.id] = `Castigo por no votar en fecha ${missedMatch.date}`;
-                        }
-                    }
-                }
-            }
-        });
-
-        return { blockedMatchIds: penalties, reasons: penaltyReasons };
-    }, [finishedMatches, currentUser]);
-
 
     const playersToRate = useMemo(() => {
         if (!selectedMatch) return [];
@@ -114,8 +142,6 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
     };
 
     const hasUserVoted = selectedMatch?.finishedVoters?.includes(currentUser.id);
-    const isPardoned = selectedMatch?.pardonedVoters?.includes(currentUser.id);
-    const isPenalized = selectedMatch && penaltyCheck.blockedMatchIds.includes(selectedMatch.id) && !isPardoned;
     const isVotingOpen = selectedMatch?.ratingStatus === 'OPEN';
 
     // Finalizar votación (Submit)
@@ -125,7 +151,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
         try {
             await onFinishVoting(selectedMatchId);
             if (abstain) {
-                toast.info("Has desistido. Se aplicará la penalización visual.");
+                toast.info("Has desistido.");
             } else {
                 toast.success("¡Calificaciones guardadas correctamente!");
             }
@@ -144,13 +170,16 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
     const totalToVote = playersToRate.length;
     const isVotingComplete = votedCount === totalToVote;
 
-    // VISTA DE SALA: SI NO HAY PARTIDO SELECCIONADO
-    if (!selectedMatchId || !selectedMatch) {
+    // VISTA DE SALA: SI NO HAY PARTIDO SELECCIONADO O NO ESTÁ FINALIZADO
+    if (!selectedMatchId || !selectedMatch || selectedMatch.status !== 'FINALIZADO') {
         return (
             <div className="space-y-6 pb-12">
-                <div className="text-center py-6 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg text-white shadow-lg">
-                    <h2 className="text-3xl font-bold">⭐ Sala de Votación</h2>
-                    <p className="opacity-90">Elige un partido habilitado y califica a tus compañeros.</p>
+                <div className="text-center py-6 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg text-white shadow-lg relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h2 className="text-3xl font-bold italic tracking-tighter uppercase">⭐ Sala de Votación</h2>
+                        <p className="opacity-90 font-medium">Elige un partido habilitado y califica a tus compañeros.</p>
+                    </div>
+                    <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🗳️</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -160,11 +189,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                         const expired = isMatchExpired(match.date);
                         const userPlayed = match.playerStatuses.some(ps => ps.playerId === currentUser.id && ps.attendanceStatus === AttendanceStatus.CONFIRMED);
                         const userVoted = match.finishedVoters?.includes(currentUser.id);
-                        const userPardoned = match.pardonedVoters?.includes(currentUser.id);
                         
-                        const isBlocked = penaltyCheck.blockedMatchIds.includes(match.id) && !userPardoned;
-                        const blockReason = penaltyCheck.reasons[match.id];
-
                         let cardClass = "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700";
                         let statusText = "Esperando habilitación";
                         let statusColor = "text-gray-500";
@@ -177,23 +202,18 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                             statusColor = "text-red-500";
                             icon = "🕰️";
                         } else if (isOpen) {
-                            if (userPlayed && !userVoted && !userPardoned) {
+                            if (userPlayed && !userVoted) {
                                 cardClass = "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 shadow-lg cursor-pointer transform hover:scale-105 transition-transform";
                                 statusText = "¡TE TOCA VOTAR!";
                                 statusColor = "text-yellow-600 font-bold animate-pulse";
                                 icon = "🗳️";
                                 actionButton = "VOTAR AHORA";
-                            } else if (userPlayed && userVoted && isBlocked) {
-                                cardClass = "bg-red-50 dark:bg-red-900/20 border-red-500 opacity-80 cursor-not-allowed";
-                                statusText = "PENALIZADO (VER AYUDA)";
-                                statusColor = "text-red-600 font-bold";
-                                icon = "⛔";
-                            } else if (userPlayed && (userVoted || userPardoned) && !isBlocked) {
+                            } else if (userPlayed && userVoted) {
                                 cardClass = "bg-green-50 dark:bg-green-900/20 border-green-500 shadow-sm cursor-pointer hover:scale-105 transition-transform";
-                                statusText = userPardoned ? "INDULTADO" : "YA CALIFICASTE";
+                                statusText = "YA CALIFICASTE";
                                 statusColor = "text-green-600 font-bold";
                                 icon = "✅";
-                                actionButton = userPardoned ? "VER RESULTADOS" : "VER / MODIFICAR";
+                                actionButton = "VER / MODIFICAR";
                             } else if (!userPlayed) {
                                 cardClass = "bg-gray-50 dark:bg-gray-800 border-gray-200 cursor-not-allowed opacity-70";
                                 statusText = "NO JUGASTE";
@@ -207,15 +227,11 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                                 key={match.id} 
                                 className={`border-2 rounded-xl p-5 relative overflow-hidden flex flex-col justify-between h-full ${cardClass}`}
                                 onClick={() => {
-                                    if (isOpen && !expired && (userPlayed || ((userVoted || userPardoned) && !isBlocked))) {
-                                        if (isBlocked && userVoted && !userPardoned) {
-                                            toast.error(blockReason);
-                                        } else {
-                                            setSelectedMatchId(match.id);
-                                            setIsEditingVote(false); // Reset edit mode
-                                        }
+                                    if (isOpen && !expired && (userPlayed || userVoted)) {
+                                        setSelectedMatchId(match.id);
+                                        setIsEditingVote(false); // Reset edit mode
                                     } else if (!userPlayed && isAdmin) {
-                                        // Admin can enter any match to manage pardons
+                                        // Admin can enter any match
                                         setSelectedMatchId(match.id);
                                     } else if (!userPlayed) {
                                         toast.info("Solo los que jugaron pueden entrar.");
@@ -236,11 +252,6 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                                         <span className="text-2xl">{icon}</span>
                                         <span className="text-sm uppercase tracking-wider">{statusText}</span>
                                     </div>
-                                    {isBlocked && (
-                                        <p className="text-xs text-red-500 mt-2 font-semibold bg-red-100 dark:bg-red-900/50 p-1 rounded">
-                                            {blockReason}
-                                        </p>
-                                    )}
                                 </div>
                                 {actionButton && (
                                     <button className={`mt-6 w-full py-2 font-bold rounded-lg shadow-md transition-colors ${actionButton === 'VOTAR AHORA' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}>
@@ -257,8 +268,8 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
 
     const opponentName = opponents.find(o => o.id === selectedMatch.opponentId)?.name || 'Rival';
 
-    // VISTA DE "YA CALIFICADO" (Si ya votó, no está editando y no está penalizado)
-    if ((hasUserVoted || isPardoned) && !isEditingVote && !isPenalized) {
+    // VISTA DE "YA CALIFICADO" (Si ya votó y no está editando)
+    if (hasUserVoted && !isEditingVote) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 min-h-[60vh]">
                 <button onClick={() => setSelectedMatchId(null)} className="mb-4 text-gray-500 hover:text-indigo-600 flex items-center gap-1">← Volver a la Sala</button>
@@ -266,13 +277,13 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                 <div className="text-center mb-6 p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
                      <div className="text-5xl mb-2">✅</div>
                      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                        {isPardoned ? "Estás Indultado" : "¡Ya has calificado!"}
+                        ¡Ya has calificado!
                      </h2>
                      <p className="text-gray-600 dark:text-gray-300 mt-2">
-                        {isPardoned ? "El administrador te desbloqueó manualmente. Puedes ver los resultados." : `Tus votos para el partido vs ${opponentName} ya fueron guardados.`}
+                        Tus votos para el partido vs {opponentName} ya fueron guardados.
                      </p>
                      
-                     {isVotingOpen && !isPardoned && (
+                     {isVotingOpen && (
                          <div className="mt-6">
                             <p className="text-sm text-gray-500 mb-3">¿Cambiaste de opinión? La votación sigue abierta.</p>
                             <button 
@@ -302,7 +313,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                             const avg = count > 0 ? (sum / count).toFixed(1) : '-';
 
                             return (
-                                 <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700">
+                                 <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-50/50 rounded-lg border border-gray-100 dark:border-gray-700">
                                     <div className="flex items-center gap-3">
                                         <img src={player.photoUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
                                         <p className="font-bold text-gray-800 dark:text-gray-200">{player.nickname}</p>
@@ -323,44 +334,25 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                         <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                             <span>👮</span> Panel de Control (Admin)
                         </h3>
-                        <p className="text-sm text-gray-500 mb-4">Gestiona quién ha cumplido con la votación para desbloquearlos.</p>
+                        <p className="text-sm text-gray-500 mb-4">Jugadores que confirmaron asistencia y su detalle de votos.</p>
                         
-                        <div className="bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
+                        <div className="bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden divide-y dark:divide-gray-700">
                             {selectedMatch.playerStatuses
                                 .filter(ps => ps.attendanceStatus === AttendanceStatus.CONFIRMED)
                                 .map(ps => {
                                     const p = players.find(x => x.id === ps.playerId);
                                     if (!p) return null;
                                     const voted = selectedMatch.finishedVoters?.includes(p.id);
-                                    const pardoned = selectedMatch.pardonedVoters?.includes(p.id);
+                                    const raterVotes = selectedMatch.ratings?.[p.id] || {};
                                     
                                     return (
-                                        <div key={p.id} className="flex items-center justify-between p-3 border-b dark:border-gray-700 last:border-0">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xs font-mono text-gray-400">{p.id}</span>
-                                                <span className={`font-bold ${voted ? 'text-green-600' : pardoned ? 'text-blue-500' : 'text-red-500'}`}>
-                                                    {p.nickname}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {voted ? (
-                                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-bold">VOTÓ</span>
-                                                ) : pardoned ? (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-bold">INDULTADO</span>
-                                                ) : (
-                                                    <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-bold">PENDIENTE</span>
-                                                )}
-                                                
-                                                {onPardonPlayer && (
-                                                    <button 
-                                                        onClick={() => onPardonPlayer(selectedMatch.id, p.id)}
-                                                        className={`text-xs px-2 py-1 rounded border ${pardoned ? 'border-red-400 text-red-500 hover:bg-red-50' : 'border-blue-400 text-blue-500 hover:bg-blue-50'}`}
-                                                    >
-                                                        {pardoned ? 'Revocar' : 'Indultar'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <AdminRaterRow 
+                                            key={p.id}
+                                            player={p}
+                                            voted={!!voted}
+                                            raterVotes={raterVotes as Record<number, number>}
+                                            players={players}
+                                        />
                                     );
                                 })}
                         </div>
@@ -385,19 +377,6 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ matches, players, oppo
                 <p className="text-gray-500">{selectedMatch.date}</p>
                 
                 {/* BANNER DE INSTRUCCIÓN */}
-                <div className="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800 text-sm text-indigo-800 dark:text-indigo-300 max-w-2xl mx-auto shadow-sm">
-                    <p className="font-bold text-lg mb-1">📢 Instrucciones:</p>
-                    <ul className="list-disc list-inside text-left mx-auto max-w-md space-y-1">
-                        <li>Debes calificar a <strong>TODOS</strong> los jugadores listados.</li>
-                        <li>Si no quieres opinar, usa el botón <strong>"Desistir"</strong> (esto anulará tu capacidad de ver resultados).</li>
-                    </ul>
-                </div>
-
-                {isPenalized && (
-                    <div className="mt-2 bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-bold inline-block">
-                        ⚠️ Tienes una penalización activa. Podrás votar, pero NO verás resultados.
-                    </div>
-                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

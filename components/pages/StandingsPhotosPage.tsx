@@ -8,9 +8,10 @@ interface StandingsPhotosPageProps {
     onAddPhoto: (url: string) => void;
     onDeletePhoto: (id: string) => void;
     isAdmin: boolean;
+    leagueUrl?: string;
 }
 
-export const StandingsPhotosPage: React.FC<StandingsPhotosPageProps> = ({ photos, onAddPhoto, onDeletePhoto, isAdmin }) => {
+export const StandingsPhotosPage: React.FC<StandingsPhotosPageProps> = ({ photos, onAddPhoto, onDeletePhoto, isAdmin, leagueUrl }) => {
     const toast = useToast();
     const [selectedPhoto, setSelectedPhoto] = useState<StandingsPhoto | null>(null);
     const [isPasting, setIsPasting] = useState(false);
@@ -86,10 +87,23 @@ export const StandingsPhotosPage: React.FC<StandingsPhotosPageProps> = ({ photos
                 <h2 className="text-4xl font-black italic uppercase tracking-tighter text-gray-800 dark:text-white">TABLA DE POSICIONES</h2>
                 <p className="text-gray-500 font-bold text-xs uppercase tracking-widest mt-1">Recortes del torneo actual</p>
                 
-                <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-indigo-800">
-                    <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
-                        {isPasting ? "⌛ PROCESANDO..." : "💡 TIP: Saca captura y pega (Ctrl+V) aquí directamente"}
-                    </p>
+                <div className="flex flex-col gap-3 mt-6">
+                    {leagueUrl && (
+                        <a 
+                            href={leagueUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-lg shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all animate-fadeIn"
+                        >
+                            <span>🌐</span> VER PAGINA DE LA LIGA
+                        </a>
+                    )}
+
+                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border-2 border-dashed border-indigo-200 dark:border-indigo-800">
+                        <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400">
+                            {isPasting ? "⌛ PROCESANDO..." : "💡 TIP: Saca captura y pega (Ctrl+V) aquí directamente"}
+                        </p>
+                    </div>
                 </div>
             </header>
 

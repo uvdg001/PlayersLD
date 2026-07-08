@@ -216,6 +216,11 @@ export const MatchAdminModal: React.FC<MatchAdminModalProps> = ({ match, players
                                             👟 T. Libre
                                         </th>
 
+                                        {/* Asistencias */}
+                                        <th className="px-4 py-3 min-w-[130px] text-center text-blue-600 dark:text-blue-400 border-r dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10">
+                                            🅰️ Asistencias
+                                        </th>
+
                                         {/* Negative Stats */}
                                         <th className="px-4 py-3 min-w-[130px] text-center text-red-500 bg-red-50 dark:bg-red-900/10">
                                             🥅 G. Contra
@@ -299,6 +304,11 @@ export const MatchAdminModal: React.FC<MatchAdminModalProps> = ({ match, players
                                                     {/* Goals: Tiro Libre */}
                                                     <td className="px-4 py-3 text-center border-r dark:border-gray-700 bg-green-50/30 dark:bg-green-900/5">
                                                         <BigStatCounter value={s.goalsSetPiece || 0} onChange={(v) => updateStatus(player.id, { goalsSetPiece: v })} colorClass="text-green-700 dark:text-green-400" />
+                                                    </td>
+
+                                                    {/* Asistencias */}
+                                                    <td className="px-4 py-3 text-center border-r dark:border-gray-700 bg-blue-50/30 dark:bg-blue-900/5">
+                                                        <BigStatCounter value={s.assists || 0} onChange={(v) => updateStatus(player.id, { assists: v })} colorClass="text-indigo-700 dark:text-indigo-400" />
                                                     </td>
 
                                                     {/* Gol en Contra */}

@@ -17,7 +17,7 @@ interface HelpSection {
     technical?: boolean;
 }
 
-export const HelpPage: React.FC<{isAdmin: boolean, onWipeFixture?: () => void}> = ({isAdmin, onWipeFixture}) => {
+export const HelpPage: React.FC<{isAdmin: boolean, onWipeFixture?: () => void, onInstallApp?: () => void}> = ({isAdmin, onWipeFixture, onInstallApp}) => {
     const [expandedIndex, setExpandedIndex] = useState<string | null>(null);
 
     const toggleExpand = (index: string) => {
@@ -104,29 +104,17 @@ export const HelpPage: React.FC<{isAdmin: boolean, onWipeFixture?: () => void}> 
             ]
         },
         {
-            title: "⭐ Votación y Penalizaciones",
+            title: "⭐ Votación",
             items: [
                 {
-                    t: "¿Cuándo y cómo voto?",
-                    d: "Calificar el rendimiento de los compañeros.",
+                    t: "¿Cómo calificar?",
+                    d: "Para poder calificar, se deben cumplir estas condiciones:",
                     icon: "🗳️",
                     stepsList: [
-                        "Solo se puede votar si el partido terminó y el Admin abrió la votación.",
-                        "Ve a la pestaña '⭐ Votación'.",
-                        "Toca 'ENTRAR AL CUARTO OSCURO'.",
-                        "Debes poner estrellas a TODOS los que jugaron al menos un rato.",
-                        "No puedes enviar si te falta calificar a alguien."
-                    ]
-                },
-                {
-                    t: "El Candado Rojo (Penalización)",
-                    d: "Castigo por no cumplir con el voto.",
-                    icon: "⛔",
-                    stepsList: [
-                        "Si jugaste el partido, ES OBLIGATORIO VOTAR.",
-                        "Si pasa el tiempo y no votaste, recibirás una penalización.",
-                        "CONSECUENCIA: No podrás ver los puntajes ni el 'Salón de la Fama' de ese partido NI DE LOS DOS SIGUIENTES.",
-                        "Para evitarlo, vota siempre antes del próximo partido."
+                        "El partido debe haber terminado y estar en estado 'FINALIZADO'.",
+                        "El Administrador debe 'Abrir la Votación' para ese partido.",
+                        "Debes haber jugado ese partido (estado 'Confirmado' en la convocatoria).",
+                        "La votación para ese partido no debe haber expirado (dura 14 días)."
                     ]
                 }
             ]
@@ -264,6 +252,37 @@ export const HelpPage: React.FC<{isAdmin: boolean, onWipeFixture?: () => void}> 
             <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm mb-6 border-b-4 border-indigo-500">
                 <h1 className="text-4xl font-extrabold text-gray-800 dark:text-gray-100 mb-2">Centro de Ayuda</h1>
                 <p className="text-gray-500 dark:text-gray-400">Guía completa de uso y administración.</p>
+            </div>
+
+            {/* SECCIÓN DE INSTALACIÓN */}
+            <div className="bg-indigo-600 rounded-3xl p-6 text-white shadow-xl mb-8 relative overflow-hidden">
+                <div className="relative z-10">
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter mb-2">📲 Instalar App en tu Celular</h3>
+                    <p className="text-sm opacity-90 mb-6">Ten a mano la App como si fuera de la tienda (Play Store/App Store) con acceso directo y pantalla completa.</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                            <p className="font-bold text-xs uppercase mb-2">Opción 1: Automática</p>
+                            <button 
+                                onClick={onInstallApp}
+                                className="w-full py-3 bg-white text-indigo-600 font-black rounded-xl shadow-lg hover:bg-gray-100 transition-all active:scale-95 text-xs uppercase tracking-widest"
+                            >
+                                Descargar Aplicación
+                            </button>
+                            <p className="text-[10px] mt-2 opacity-70">* Disponible en Android y Chrome.</p>
+                        </div>
+                        
+                        <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                            <p className="font-bold text-xs uppercase mb-2">Opción 2: Manual (iPhone/iOS)</p>
+                            <div className="flex flex-col gap-2 text-[11px] font-medium italic">
+                                <p>1. Toca el icono de compartir ( <span className="text-lg">⎋</span> o <span className="text-lg">⎙</span> ) abajo.</p>
+                                <p>2. Busca y toca en: "Añadir a pantalla de inicio".</p>
+                                <p>3. ¡Listo! Ya tienes el acceso directo.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="absolute -bottom-4 -right-4 text-8xl opacity-10 rotate-12">📱</div>
             </div>
             
             {isAdmin && onWipeFixture && (

@@ -1,10 +1,6 @@
-
-
 import React, { useMemo, useState } from 'react';
-import type { PlayerStats, Player, Match, Opponent, ThirdHalfItem } from '../../types.ts';
+import type { PlayerStats, Player, Match, Opponent, ThirdHalfItem, Tournament } from '../../types.ts';
 import { AttendanceStatus, PlayerRole } from '../../types.ts';
-import { useToast } from '../../hooks/useToast.ts';
-
 
 interface StatisticsPageProps {
     stats: PlayerStats[];
@@ -12,17 +8,15 @@ interface StatisticsPageProps {
     onViewProfile: (player: Player) => void;
     teamPenaltiesAgainst: number;
     matches?: Match[];
-    currentUser: Player;
     opponents: Opponent[];
-    isSuperAdmin?: boolean; // New prop
+    tournaments?: Tournament[];
     isAdmin?: boolean;
-    onPardonPlayer?: (matchId: number, playerId: number) => void; // New prop
 }
 
 const StatCard: React.FC<{ title: string; children: React.ReactNode, icon?: string, className?: string }> = ({ title, children, icon, className }) => (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 ${className}`}>
-        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            {icon && <span className="text-2xl">{icon}</span>}
+    <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 ${className} border border-gray-100 dark:border-gray-700`}>
+        <h3 className="text-xl font-black text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2 italic uppercase tracking-tighter">
+            {icon && <span className="text-2xl filter drop-shadow-sm">{icon}</span>}
             {title}
         </h3>
         {children}
@@ -30,303 +24,342 @@ const StatCard: React.FC<{ title: string; children: React.ReactNode, icon?: stri
 );
 
 const EmptyState: React.FC<{ message: string }> = ({ message }) => (
-    <p className="text-center py-4 text-gray-500 dark:text-gray-400">{message}</p>
+    <p className="text-center py-8 text-gray-500 dark:text-gray-400 font-bold italic">{message}</p>
 );
 
 const TableHeader: React.FC<{ columns: string[] }> = ({ columns }) => (
-    <thead className="bg-gray-100 dark:bg-gray-700">
+    <thead className="bg-gray-100 dark:bg-gray-900 border-b-2 dark:border-gray-700">
         <tr>
             {columns.map((col, i) => (
-                <th key={i} className={`p-3 text-sm font-semibold tracking-wide ${i === 0 ? 'text-left' : 'text-center'}`}>{col}</th>
+                <th key={i} className={`p-4 text-[10px] font-black tracking-widest uppercase text-gray-500 ${i === 0 ? 'text-left' : 'text-center'}`}>{col}</th>
             ))}
         </tr>
     </thead>
 );
 
-const Podium: React.FC<{ top3: PlayerStats[] }> = ({ top3 }) => {
-    if (top3.length === 0) return <EmptyState message="Votaciones pendientes." />;
-
+const Podium: React.FC<{ top3: PlayerStats[], onViewProfile: (p: Player) => void }> = ({ top3, onViewProfile }) => {
+    if (top3.length === 0) return <EmptyState message="Sin votos en este período." />;
     const [first, second, third] = top3;
-
     const PodiumItem = ({ stat, position, color, height }: { stat: PlayerStats | undefined, position: number, color: string, height: string }) => {
         if (!stat) return <div className="flex-1"></div>;
         return (
-            <div className="flex flex-col items-center justify-end flex-1">
-                 <div className="relative mb-2">
-                    <img src={stat.player.photoUrl} alt={stat.player.nickname} className={`w-14 h-14 rounded-full border-4 ${color} object-cover`} />
-                    <div className={`absolute -top-3 -right-3 w-7 h-7 rounded-full ${color} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
-                        {position}
+            <div 
+                className="flex flex-col items-center justify-end flex-1 cursor-pointer group"
+                onClick={() => onViewProfile(stat.player)}
+            >
+                 <div className="relative mb-3 transform group-hover:scale-110 transition-transform">
+                    <img src={stat.player.photoUrl} alt={stat.player.nickname} className={`w-16 h-16 rounded-full border-4 ${color} object-cover shadow-xl`} />
+                    <div className={`absolute -top-3 -right-3 w-8 h-8 rounded-full ${color} flex items-center justify-center text-white font-black text-sm shadow-md border-2 border-white`}>
+                        {position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉'}
                     </div>
                 </div>
-                <p className="font-bold text-sm text-center truncate w-full">{stat.player.nickname}</p>
-                <p className="text-xs font-bold text-yellow-600 mb-1">{stat.avgRating.toFixed(2)} ★</p>
-                <div className={`w-full ${color} rounded-t-lg opacity-80`} style={{ height }}></div>
+                <p className="font-black text-xs text-center truncate w-full uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">{stat.player.nickname}</p>
+                <p className="text-[10px] font-black text-yellow-500 mb-2">{stat.avgRating.toFixed(2)} ★</p>
+                <div className={`w-full ${color} rounded-t-2xl opacity-60 group-hover:opacity-100 transition-opacity`} style={{ height }}></div>
             </div>
         );
     }
-
     return (
-        <div className="flex items-end justify-center h-48 gap-2 mb-6 px-4">
-            <PodiumItem stat={second} position={2} color="bg-gray-400 border-gray-400" height="40%" />
-            <PodiumItem stat={first} position={1} color="bg-yellow-400 border-yellow-400" height="60%" />
-            <PodiumItem stat={third} position={3} color="bg-orange-400 border-orange-400" height="30%" />
+        <div className="flex items-end justify-center h-56 gap-3 mb-6 px-4">
+            <PodiumItem stat={second} position={2} color="bg-gray-400" height="45%" />
+            <PodiumItem stat={first} position={1} color="bg-yellow-400" height="70%" />
+            <PodiumItem stat={third} position={3} color="bg-orange-400" height="35%" />
         </div>
     );
 };
 
-const PRESET_ITEM_EMOJIS: {[key: string]: string} = { beer: '🍺', fernet: '🍷', pizza: '🍕', asado: '🥩', ice: '🧊', soda: '🥤', chips: '🍟', other: '🛒' };
-
-export const StatisticsPage: React.FC<StatisticsPageProps> = ({ stats, canViewRatings, onViewProfile, teamPenaltiesAgainst, matches = [], currentUser, opponents, isAdmin, onPardonPlayer }) => {
-    const toast = useToast();
+export const StatisticsPage: React.FC<StatisticsPageProps> = ({ stats, canViewRatings, onViewProfile, teamPenaltiesAgainst, matches = [], opponents, tournaments = [], isAdmin }) => {
     const [view, setView] = useState<'total' | 'match' | 'credits'>('total');
+    const [timeRange, setTimeRange] = useState<'WEEK' | 'MONTH' | 'ALL' | number>('ALL');
     const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
 
-    const finishedMatches = useMemo(() => 
-        matches.filter(m => m.status === 'FINALIZADO').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
-    [matches]);
-    
-    const selectedMatch = useMemo(() => 
-        selectedMatchId ? finishedMatches.find(m => m.id === selectedMatchId) : null,
-    [selectedMatchId, finishedMatches]);
+    const filteredMatches = useMemo(() => {
+        let base = matches.filter(m => m.status === 'FINALIZADO');
+        const now = new Date();
+        
+        if (typeof timeRange === 'number') {
+            base = base.filter(m => m.tournamentId === timeRange);
+        } else if (timeRange === 'WEEK') {
+            const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            base = base.filter(m => new Date(m.date).getTime() >= lastWeek.getTime());
+        } else if (timeRange === 'MONTH') {
+            const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            base = base.filter(m => new Date(m.date).getTime() >= lastMonth.getTime());
+        }
+        return base.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [matches, timeRange]);
+
+    const filteredStats: PlayerStats[] = useMemo(() => {
+        return stats.map(playerStat => {
+            const playerMatches = filteredMatches.filter(m => m.playerStatuses.some(ps => ps.playerId === playerStat.player.id && ps.attendanceStatus === AttendanceStatus.CONFIRMED));
+            
+            let goalsPlay = 0, goalsPenalty = 0, goalsHeader = 0, goalsSetPiece = 0, assists = 0, yellowCards = 0, totalAmountPaid = 0, ratingSum = 0, ratingCount = 0;
+            let redCards = 0;
+
+            playerMatches.forEach(m => {
+                const ps = m.playerStatuses.find(s => s.playerId === playerStat.player.id)!;
+                const extraGoals = (ps.goals || 0);
+                goalsPlay += (ps.goalsPlay || 0) + extraGoals;
+                goalsPenalty += (ps.goalsPenalty || 0);
+                goalsHeader += (ps.goalsHeader || 0);
+                goalsSetPiece += (ps.goalsSetPiece || 0);
+                assists += (ps.assists || 0);
+                yellowCards += (ps.yellowCards || 0);
+                if (ps.redCard) redCards++;
+                totalAmountPaid += (ps.amountPaid || 0);
+                if (m.ratings) {
+                    Object.values(m.ratings).forEach(raterRatings => {
+                        if (raterRatings[playerStat.player.id]) { ratingSum += raterRatings[playerStat.player.id]; ratingCount++; }
+                    });
+                }
+            });
+
+            return {
+                ...playerStat,
+                pj: playerMatches.length,
+                totalGoals: goalsPlay + goalsPenalty + goalsHeader + goalsSetPiece,
+                goalsPlay, goalsPenalty, goalsHeader, goalsSetPiece, assists, yellowCards, redCards, totalAmountPaid,
+                avgRating: ratingCount > 0 ? ratingSum / ratingCount : 0,
+                ratingCount,
+            } as PlayerStats;
+        }).filter(s => s.pj > 0);
+    }, [stats, filteredMatches]);
+
+    const finishedMatches = useMemo(() => filteredMatches.filter(m => m.status === 'FINALIZADO'), [filteredMatches]);
+    const selectedMatch = useMemo(() => selectedMatchId ? finishedMatches.find(m => m.id === selectedMatchId) : null, [selectedMatchId, finishedMatches]);
 
     const perMatchStats = useMemo(() => {
         if (!selectedMatch) return null;
-
         const confirmedPlayers = selectedMatch.playerStatuses
             .filter(ps => ps.attendanceStatus === 'CONFIRMED')
             .map(ps => {
                 const player = stats.find(s => s.player.id === ps.playerId)?.player;
                 if (!player) return null;
                 const totalGoals = (ps.goalsPlay || 0) + (ps.goalsPenalty || 0) + (ps.goalsHeader || 0) + (ps.goalsSetPiece || 0);
-                return { player, ...ps, totalGoals };
+                
+                // Calcular promedio de este partido puntual
+                let sum = 0, count = 0;
+                if (selectedMatch.ratings) {
+                    Object.values(selectedMatch.ratings).forEach(raterRatings => {
+                        if (raterRatings[player.id]) { sum += raterRatings[player.id]; count++; }
+                    });
+                }
+                const matchAvg = count > 0 ? sum / count : 0;
+
+                return { player, ...ps, totalGoals, matchAvg, matchVotes: count };
             })
             .filter((p): p is NonNullable<typeof p> => p !== null);
-
-        const goalScorers = confirmedPlayers
-            .filter(p => p.totalGoals > 0)
-            .sort((a, b) => b.totalGoals - a.totalGoals);
-
-        const discipline = confirmedPlayers
-            .filter(p => (p.yellowCards || 0) > 0 || p.redCard)
-            .sort((a, b) => ((b.redCard ? 2 : 0) + (b.yellowCards || 0)) - ((a.redCard ? 2 : 0) + (a.yellowCards || 0)));
-
-        return { goalScorers, discipline };
+        
+        const goalScorers = confirmedPlayers.filter(p => p.totalGoals > 0).sort((a, b) => b.totalGoals - a.totalGoals);
+        const matchRanking = confirmedPlayers.filter(p => p.matchAvg > 0).sort((a, b) => b.matchAvg - a.matchAvg);
+        
+        return { goalScorers, matchRanking };
     }, [selectedMatch, stats]);
 
-    // Fantasy Credits Calculation
     const fantasyRanking = useMemo(() => {
-        return stats.map(stat => {
+        return filteredStats.map(stat => {
             let credits = 0;
-            // Base por Asistencia (PJ * 2)
-            credits += (stat.pj * 2);
+            const myMatches = filteredMatches.filter(m => m.playerStatuses.some(ps => ps.playerId === stat.player.id && ps.attendanceStatus === AttendanceStatus.CONFIRMED));
             
-            // Goles
-            credits += (stat.goalsPlay * 3);
-            credits += (stat.goalsHeader * 5); // +5 extra for headers
-            credits += (stat.goalsPenalty * 3); // +3 penal
-            credits += (stat.goalsSetPiece * 4); // +4 free kick
-            credits += (stat.assists * 2);
+            credits += (myMatches.length * 2);
+            myMatches.forEach(m => {
+                const ps = m.playerStatuses.find(p => p.playerId === stat.player.id)!;
+                credits += (ps.goalsPlay || 0) * 3;
+                credits += (ps.goalsHeader || 0) * 5;
+                credits += (ps.goalsPenalty || 0) * 3;
+                credits += (ps.goalsSetPiece || 0) * 4;
+                credits += (ps.assists || 0) * 2;
+                credits -= (ps.yellowCards || 0) * 2;
+                if (ps.redCard) credits -= 5;
+                credits -= (ps.ownGoals || 0) * 5;
+                credits -= (ps.penaltiesMissed || 0) * 3;
+                credits -= (ps.majorErrors || 0) * 2;
 
-            // Discipline (Negatives)
-            credits -= (stat.yellowCards * 2);
-            credits -= (stat.redCards * 5);
-            credits -= (stat.ownGoals * 5);
-            credits -= (stat.penaltiesMissed * 3);
-            
-            // Bloopers & Errors
-            credits -= (stat.badThrowIns * 1);
-            credits -= (stat.badFreeKicks * 1);
-            credits -= (stat.majorErrors * 2);
-
-            // Arcade / Game Points (New)
-            if (stat.player.gamePoints) {
-                // Divides by 10 so arcade points don't overpower football points immediately
-                // e.g., 100 arcade points = 10 fantasy credits
-                credits += Math.round(stat.player.gamePoints / 10);
-            }
-
-            // Clean Sheet Bonus (Arquero/Defensa)
-            // Need to iterate matches to check clean sheets
-            finishedMatches.forEach(m => {
-                const ps = m.playerStatuses.find(p => p.playerId === stat.player.id && p.attendanceStatus === AttendanceStatus.CONFIRMED);
-                if (ps && m.opponentScore === 0) {
-                    if (stat.player.role === PlayerRole.ARQUERO || 
-                        stat.player.role === PlayerRole.DEFENSOR_CENTRAL || 
-                        stat.player.role.includes('Defensa') || 
-                        stat.player.role.includes('Lateral')) {
-                        credits += 5; 
-                    }
+                if (m.opponentScore === 0 && (stat.player.role === PlayerRole.ARQUERO || stat.player.role.includes('Defensa'))) {
+                    credits += 5;
                 }
             });
 
-            // Star Rating Bonus (1st, 2nd, 3rd) per match
-            finishedMatches.forEach(m => {
-                const ps = m.playerStatuses.find(p => p.playerId === stat.player.id && p.attendanceStatus === AttendanceStatus.CONFIRMED);
-                if (ps && m.ratings) {
-                    // Calculate ratings for this match
-                    const matchRatings: {id: number, avg: number}[] = [];
-                    m.playerStatuses.forEach(p => {
-                        let sum = 0, count = 0;
-                        if(m.ratings) Object.values(m.ratings).forEach(v => { if(v[p.playerId]) { sum += v[p.playerId]; count++; }});
-                        if(count > 0) matchRatings.push({ id: p.playerId, avg: sum/count });
-                    });
-                    
-                    // Sort descending
-                    matchRatings.sort((a,b) => b.avg - a.avg);
-                    
-                    // Award points
-                    if (matchRatings[0]?.id === stat.player.id) credits += 5; // 1st
-                    else if (matchRatings[1]?.id === stat.player.id) credits += 3; // 2nd
-                    else if (matchRatings[2]?.id === stat.player.id) credits += 1; // 3rd
-                }
-            });
-
-            return { ...stat, credits };
+            if (stat.player.gamePoints) credits += Math.round(stat.player.gamePoints / 10);
+            return { ...stat, credits, filteredPJ: myMatches.length };
         }).sort((a, b) => b.credits - a.credits);
-    }, [stats, finishedMatches]);
+    }, [filteredStats, filteredMatches]);
 
-
-    // Total Stats calculations
-    const goalScorers = [...stats].filter(s => s.totalGoals > 0).sort((a, b) => b.totalGoals - a.totalGoals);
-    const disciplineRanking = [...stats].filter(s => s.yellowCards > 0 || s.redCards > 0).sort((a, b) => (b.redCards * 2 + b.yellowCards) - (a.redCards * 2 + a.yellowCards));
-    const recordRanking = [...stats].filter(s => s.pj > 0).sort((a, b) => b.pg - a.pg || (b.pg + b.pe) - (a.pg + a.pe));
-    const ratingRanking = canViewRatings ? [...stats].filter(s => s.avgRating > 0).sort((a, b) => b.avgRating - a.avgRating) : [];
-    const podium = ratingRanking.slice(0, 3);
-    const restOfHallOfFame = ratingRanking.slice(3);
-    const laundryPending = [...stats].sort((a, b) => a.matchesWashed - b.matchesWashed || a.player.nickname.localeCompare(b.player.nickname));
+    const goalScorers = [...filteredStats].sort((a, b) => b.totalGoals - a.totalGoals);
+    const ratingRanking = [...filteredStats].filter(s => s.avgRating > 0).sort((a, b) => b.avgRating - a.avgRating);
+    const disciplineRanking = [...filteredStats]
+        .filter(s => s.yellowCards > 0 || s.redCards > 0)
+        .sort((a, b) => (b.redCards * 2 + b.yellowCards) - (a.redCards * 2 + a.yellowCards));
     
-    // Bloopers Ranking - Filter only those who have any negative stat
-    const bloopersRanking = [...stats].filter(s => 
-        (s.ownGoals > 0 || s.penaltiesMissed > 0 || s.badThrowIns > 0 || s.badFreeKicks > 0 || s.majorErrors > 0)
-    ).sort((a, b) => {
-        const totalA = a.ownGoals + a.penaltiesMissed + a.badThrowIns + a.badFreeKicks + a.majorErrors;
-        const totalB = b.ownGoals + b.penaltiesMissed + b.badThrowIns + b.badFreeKicks + b.majorErrors;
-        return totalB - totalA;
-    });
-
     const thirdHalfStats = useMemo(() => {
-        let totalBeerLitros = 0;
-        let totalSpentThirdHalf = 0;
-        let totalSpentCourt = 0;
-        const itemsMap = new Map<string, {name: string, qty: number, emoji: string}>();
-        matches.filter(m => m.status === 'FINALIZADO').forEach(m => {
+        let totalBeerLitros = 0, totalSpentThirdHalf = 0, totalSpentCourt = 0;
+        filteredMatches.forEach(m => {
             totalSpentCourt += m.courtFee;
             if (m.thirdHalf) {
                 totalSpentThirdHalf += m.thirdHalf.totalSpent;
-                m.thirdHalf.items.forEach((item: ThirdHalfItem) => { // Cast item to ThirdHalfItem
+                m.thirdHalf.items.forEach((item: ThirdHalfItem) => {
                     if (item.id === 'beer') totalBeerLitros += item.quantity;
-                    let emoji = PRESET_ITEM_EMOJIS[item.id] || '🛒';
-                    const current = itemsMap.get(item.id) || { name: item.name, qty: 0, emoji };
-                    itemsMap.set(item.id, { name: item.name, qty: current.qty + item.quantity, emoji: current.emoji });
                 });
             }
         });
-        const topItems = [...itemsMap.values()].sort((a, b) => b.qty - a.qty).slice(0, 3);
         const grandTotal = totalSpentCourt + totalSpentThirdHalf;
-        return { totalBeerLitros, totalSpentThirdHalf, totalSpentCourt, topItems, courtPerc: grandTotal > 0 ? (totalSpentCourt / grandTotal) * 100 : 50, thirdHalfPerc: grandTotal > 0 ? (totalSpentThirdHalf / grandTotal) * 100 : 50 };
-    }, [matches]);
-
-    const isUserPenalized = useMemo(() => {
-        const finished = [...matches].filter(m => m.status === 'FINALIZADO').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        if (finished.length === 0) return false;
-        
-        // Find last played match
-        const lastPlayed = finished.find(m => m.playerStatuses.some(ps => ps.playerId === currentUser.id && ps.attendanceStatus === AttendanceStatus.CONFIRMED));
-        
-        if (!lastPlayed) return false;
-
-        const voted = lastPlayed.finishedVoters?.includes(currentUser.id);
-        const pardoned = lastPlayed.pardonedVoters?.includes(currentUser.id);
-
-        return !voted && !pardoned;
-    }, [matches, currentUser]);
-
-    // Admin Pardon Logic
-    const penalizedPlayers = useMemo(() => {
-        if (!isAdmin) return [];
-        const penalties: { matchId: number, matchDate: string, player: Player }[] = [];
-        
-        // For last 3 finished matches only to keep it relevant
-        const recentMatches = finishedMatches.slice(0, 3);
-        
-        recentMatches.forEach(m => {
-            m.playerStatuses.forEach(ps => {
-                if (ps.attendanceStatus === AttendanceStatus.CONFIRMED) {
-                    const voted = m.finishedVoters?.includes(ps.playerId);
-                    const pardoned = m.pardonedVoters?.includes(ps.playerId);
-                    if (!voted && !pardoned) {
-                        const p = stats.find(s => s.player.id === ps.playerId)?.player;
-                        if (p) penalties.push({ matchId: m.id, matchDate: m.date, player: p });
-                    }
-                }
-            });
-        });
-        return penalties;
-    }, [finishedMatches, isAdmin, stats]);
-
+        return { 
+            totalBeerLitros, 
+            totalSpentThirdHalf, 
+            totalSpentCourt, 
+            courtPerc: grandTotal > 0 ? (totalSpentCourt / grandTotal) * 100 : 50, 
+            thirdHalfPerc: grandTotal > 0 ? (totalSpentThirdHalf / grandTotal) * 100 : 50 
+        };
+    }, [filteredMatches]);
 
     const formatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
-    const handleShareStats = async () => {
-        const topGoalScorers = goalScorers.slice(0, 3).map((s, i) => `${i + 1}. ${s.player.nickname} (${s.totalGoals})`).join('\n');
-        const topRated = ratingRanking.slice(0, 3).map((s, i) => `${i + 1}. ${s.player.nickname} (${s.avgRating.toFixed(1)} ★)`).join('\n');
-        const shareText = `*📊 Resumen Estadístico - PLAYERS LD 📊*\n\n*⚽ GOLEADORES:*\n${topGoalScorers || 'Sin datos'}\n\n*⭐ PODIO:*\n${canViewRatings ? (topRated || 'Sin datos') : 'Votaciones pendientes'}\n\n*🍻 3ER TIEMPO:*\nSe tomaron ${thirdHalfStats.totalBeerLitros} litros de cerveza este año.\n\n---\n¡Vamos equipo! 💪`.trim();
-        try { await navigator.clipboard.writeText(shareText); toast.success('¡Resumen copiado! Abriendo WhatsApp...'); } catch (e) {}
-        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+    const handleShareStatsWA = () => {
+        const rangeText = timeRange === 'WEEK' ? 'de la Semana' : timeRange === 'MONTH' ? 'del Mes' : 'Histórico';
+        let text = `*📊 RESUMEN ESTADÍSTICO PLAYERS (${rangeText})*\n`;
+        text += `--------------------------------\n\n`;
+
+        if (view === 'credits') {
+            text += `*💰 RANKING FANTASY CREDITS*\n`;
+            fantasyRanking.slice(0, 10).forEach((s, i) => {
+                text += `${i + 1}. *${s.player.nickname}*: ${s.credits} pts\n`;
+            });
+            text += `\n_El Fantasy suma Goles, Vallas Invictas y Créditos Arcade._\n`;
+        } else if (view === 'total') {
+            text += `*⭐ RANKING DE VALORACIÓN*\n`;
+            ratingRanking.forEach((s, i) => {
+                const medal = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : `${i + 1}. `;
+                text += `${medal}*${s.player.nickname}*: ${s.avgRating.toFixed(2)} ★\n`;
+            });
+
+            text += `\n*⚽ TOP GOLEADORES*\n`;
+            goalScorers.slice(0, 5).forEach((s, i) => {
+                text += `${i + 1}. *${s.player.nickname}*: ${s.totalGoals} goles\n`;
+            });
+
+            text += `\n*🍻 VICIOS & FINANZAS*\n`;
+            text += `- Cerveza consumida: ${thirdHalfStats.totalBeerLitros}L 🍺\n`;
+            text += `- Inversión 3er Tiempo: ${formatter.format(thirdHalfStats.totalSpentThirdHalf)}\n`;
+            text += `- Relación: ${Math.round(thirdHalfStats.thirdHalfPerc)}% Joda / ${Math.round(thirdHalfStats.courtPerc)}% Fútbol\n`;
+        } else if (view === 'match' && selectedMatch) {
+            const opp = opponents.find(o => o.id === selectedMatch.opponentId)?.name || 'Rival';
+            text += `*⚽ DETALLE DE FECHA: vs ${opp}*\n`;
+            text += `📅 ${selectedMatch.date}\n`;
+            text += `🏆 Resultado: *${perMatchStats?.goalScorers.reduce((acc, p) => acc + p.totalGoals, 0) || 0} - ${selectedMatch.opponentScore || 0}*\n\n`;
+            
+            if (perMatchStats?.matchRanking.length) {
+                text += `*⭐ FIGURAS DEL PARTIDO:*\n`;
+                const rankingToShow = isAdmin ? perMatchStats.matchRanking : perMatchStats.matchRanking.slice(0, 5);
+                rankingToShow.forEach((s, i) => {
+                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '-';
+                    text += `${medal} *${s.player.nickname}*: ${s.matchAvg.toFixed(2)} ★\n`;
+                });
+                text += `\n`;
+            }
+
+            if (perMatchStats?.goalScorers.length) {
+                text += `*⚽ GOLEADORES:*\n`;
+                perMatchStats.goalScorers.forEach(g => {
+                    text += `- ${g.player.nickname}: ${g.totalGoals} ⚽\n`;
+                });
+            }
+            text += `\n_Calificaciones habilitadas en la Sala de Votación._`;
+        }
+
+        // Always include top goal scorers if not in match view
+        if (view !== 'match') {
+            text += `\n*⚽ TOP GOLEADORES*\n`;
+            if (goalScorers.length > 0) {
+                goalScorers.slice(0, 5).forEach((s, i) => {
+                    const breakdown = [];
+                    if (s.goalsPlay > 0) breakdown.push(`${s.goalsPlay} Jugada`);
+                    if (s.goalsHeader > 0) breakdown.push(`${s.goalsHeader} Cabeza`);
+                    if (s.goalsPenalty > 0) breakdown.push(`${s.goalsPenalty} Penal`);
+                    if (s.goalsSetPiece > 0) breakdown.push(`${s.goalsSetPiece} T. Libre`);
+                    
+                    text += `${i + 1}. *${s.player.nickname}*: ${s.totalGoals} goles${breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''}\n`;
+                });
+            } else {
+                text += `(Sin goles registrados en el período)\n`;
+            }
+        }
+
+        if (disciplineRanking.length > 0) {
+            text += `\n*🟥 DISCIPLINA*\n`;
+            disciplineRanking.slice(0, 5).forEach((s, i) => {
+                const cards = [];
+                if (s.yellowCards > 0) cards.push(`${s.yellowCards} 🟨`);
+                if (s.redCards > 0) cards.push(`${s.redCards} 🟥`);
+                text += `${i + 1}. *${s.player.nickname}*: ${cards.join(' ')}\n`;
+            });
+        }
+
+        text += `\n📱 *Usa la app, entrá al link:* \nhttps://primer-proyecto-a9290.web.app/`;
+
+        window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
     };
-    
 
     return (
-        <div className="space-y-8 pb-12">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <h2 className="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Estadísticas del Equipo</h2>
-                <button onClick={handleShareStats} className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
-                    Compartir Resumen
-                </button>
+        <div className="space-y-8 pb-12 animate-fadeIn">
+            <div className="flex flex-col items-center gap-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Período de Análisis</p>
+                <div className="flex flex-wrap justify-center bg-gray-200 dark:bg-gray-700 p-1 rounded-2xl gap-1 w-full max-w-2xl">
+                    <button onClick={() => setTimeRange('WEEK')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${timeRange === 'WEEK' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500'}`}>Semana</button>
+                    <button onClick={() => setTimeRange('MONTH')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${timeRange === 'MONTH' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500'}`}>Mes</button>
+                    <button onClick={() => setTimeRange('ALL')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${timeRange === 'ALL' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500'}`}>Todo</button>
+                    
+                    {tournaments.length > 0 && (
+                        <select 
+                            value={typeof timeRange === 'number' ? timeRange : ''} 
+                            onChange={(e) => setTimeRange(e.target.value ? Number(e.target.value) : 'ALL')}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all outline-none ${typeof timeRange === 'number' ? 'bg-indigo-600 text-white' : 'bg-transparent text-gray-500'}`}
+                        >
+                            <option value="">🏆 Torneos...</option>
+                            {tournaments.sort((a,b) => b.year - a.year).map(t => (
+                                <option key={t.id} value={t.id} className="text-black">{t.name} '{t.year % 100}</option>
+                            ))}
+                        </select>
+                    )}
+                </div>
             </div>
             
-            <div className="flex justify-center bg-gray-200 dark:bg-gray-700 p-1 rounded-lg gap-1">
-                <button onClick={() => setView('total')} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-md flex-1 transition-all ${view === 'total' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-gray-600 dark:text-gray-300'}`}>General</button>
-                <button onClick={() => setView('credits')} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-md flex-1 transition-all ${view === 'credits' ? 'bg-white dark:bg-gray-800 shadow text-green-600' : 'text-gray-600 dark:text-gray-300'}`}>💳 Créditos</button>
-                <button onClick={() => { setView('match'); setSelectedMatchId(null); }} className={`px-4 py-2 text-xs md:text-sm font-bold rounded-md flex-1 transition-all ${view === 'match' ? 'bg-white dark:bg-gray-800 shadow text-indigo-600' : 'text-gray-600 dark:text-gray-300'}`}>Por Partido</button>
+            <div className="flex justify-center bg-white dark:bg-gray-800 p-1.5 rounded-3xl gap-2 shadow-xl border-2 border-indigo-50 dark:border-gray-700">
+                <button onClick={() => setView('total')} className={`px-6 py-3 text-xs font-black rounded-2xl flex-1 transition-all uppercase italic tracking-tighter ${view === 'total' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400'}`}>Ranking</button>
+                <button onClick={() => setView('credits')} className={`px-6 py-3 text-xs font-black rounded-2xl flex-1 transition-all uppercase italic tracking-tighter ${view === 'credits' ? 'bg-emerald-500 text-white shadow-lg' : 'text-gray-400'}`}>💰 Fantasy</button>
+                <button onClick={() => { setView('match'); setSelectedMatchId(null); }} className={`px-6 py-3 text-xs font-black rounded-2xl flex-1 transition-all uppercase italic tracking-tighter ${view === 'match' ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400'}`}>Por Fecha</button>
+            </div>
+
+            <div className="flex justify-center">
+                <button 
+                    onClick={handleShareStatsWA}
+                    className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black uppercase italic tracking-tighter shadow-lg active:scale-95 transition-all flex items-center gap-2"
+                >
+                    <span>📱</span> ENVIAR RESUMEN POR WHATSAPP
+                </button>
             </div>
 
             {view === 'credits' && (
                 <div className="animate-fadeIn">
-                    <StatCard title="Ranking de Créditos (Fantasy)" icon="💳" className="border-2 border-green-500 bg-green-50 dark:bg-green-900/10">
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                            <strong>Sistema de Puntos:</strong> <br/>
-                            <span className="text-xs">
-                            ✅ Asistencia: +2 | ⚽ Goles: +3 (Jugada), +5 (Cabeza), +4 (Tiro Libre), +3 (Penal) <br/>
-                            🛡️ Valla Invicta (Def/Arq): +5 | ⭐ Top 3 Votación: +5, +3, +1 <br/>
-                            🕹️ Arcade: +1 Crédito por cada 10 puntos en juegos.<br/>
-                            ❌ Negativos: Tarjetas, Goles en contra, Penales errados, Bloopers.
-                            </span>
-                        </p>
-                        <div className="overflow-x-auto rounded-lg shadow">
-                            <table className="w-full text-left bg-white dark:bg-gray-800">
-                                <TableHeader columns={['#', 'Jugador', 'PJ', 'Goles', '⭐ Bonus', '🕹️ Extra', 'TOTAL']} />
+                    <StatCard title="Ranking Créditos Fantasy" icon="💳" className="border-t-8 border-emerald-500 bg-emerald-50/10">
+                        <div className="overflow-x-auto rounded-[2rem] border-2 dark:border-gray-700 bg-white dark:bg-gray-900">
+                            <table className="w-full text-left">
+                                <TableHeader columns={['#', 'Jugador', 'PJ', 'Suman', 'Arcade', 'TOTAL']} />
                                 <tbody>
-                                    {fantasyRanking.map((stat, idx) => (
-                                        <tr key={stat.player.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b dark:border-gray-700">
-                                            <td className="p-3 font-bold text-gray-500">{idx + 1}</td>
-                                            <td className="p-3 font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                                                <img src={stat.player.photoUrl} className="w-8 h-8 rounded-full object-cover" />
-                                                {stat.player.nickname}
+                                    {fantasyRanking.length > 0 ? fantasyRanking.map((stat, idx) => (
+                                        <tr key={stat.player.id} className="border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                            <td className="p-4 font-black text-gray-300">#{idx + 1}</td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={stat.player.photoUrl} className="w-8 h-8 rounded-full object-cover border-2 border-emerald-100 shadow-sm" alt="" />
+                                                    <span className="font-black text-gray-800 dark:text-white uppercase text-xs">{stat.player.nickname}</span>
+                                                </div>
                                             </td>
-                                            <td className="p-3 text-center">{stat.pj}</td>
-                                            <td className="p-3 text-center">{stat.totalGoals}</td>
-                                            <td className="p-3 text-center text-yellow-600 font-bold">
-                                                {/* Calculate Stars Bonus for display just to show something cool */}
-                                                {(stat.avgRating > 4) ? '🔥' : '-'}
-                                            </td>
-                                            <td className="p-3 text-center text-blue-500 font-bold">
-                                                {stat.player.gamePoints ? Math.round(stat.player.gamePoints / 10) : '-'}
-                                            </td>
-                                            <td className="p-3 text-center font-black text-xl text-green-600">{stat.credits}</td>
+                                            <td className="p-4 text-center font-bold">{stat.pj}</td>
+                                            <td className="p-4 text-center text-emerald-600 font-bold">...</td>
+                                            <td className="p-4 text-center text-blue-500 font-bold">{stat.player.gamePoints ? Math.round(stat.player.gamePoints / 10) : 0}</td>
+                                            <td className="p-4 text-center font-black text-xl text-indigo-600">{stat.credits}</td>
                                         </tr>
-                                    ))}
+                                    )) : <tr><td colSpan={6} className="p-20 text-center"><EmptyState message="No hay datos suficientes para este ranking." /></td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -335,130 +368,268 @@ export const StatisticsPage: React.FC<StatisticsPageProps> = ({ stats, canViewRa
             )}
 
             {view === 'total' && (
-            <div className="space-y-8 animate-fadeIn">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 md:col-span-2 text-center bg-gray-800 text-white p-6 rounded-lg shadow-lg flex flex-col justify-center items-center"><p className="text-sm uppercase font-bold text-gray-400">Penales en Contra</p><p className="text-6xl font-black text-red-500">{teamPenaltiesAgainst}</p></div>
-                    <StatCard title="🏆 Salón de la Fama (Votación)" icon="⭐" className="lg:col-span-2 md:col-span-2 relative overflow-hidden">
-                        {canViewRatings && !isUserPenalized ? (<><Podium top3={podium} />{restOfHallOfFame.length > 0 && (<div className="mt-4 border-t pt-4 dark:border-gray-700"><div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{restOfHallOfFame.map((stat, index) => (<div key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer flex items-center justify-between text-sm p-2 bg-gray-50 dark:bg-gray-700/50 rounded"><div className="flex items-center gap-2"><span className="font-bold text-gray-500">{index + 4}.</span><p>{stat.player.nickname}</p></div><p className="font-bold text-yellow-600 dark:text-yellow-400">{stat.avgRating.toFixed(2)} ★</p></div>))}</div></div>)}</>) : (<div className="flex flex-col items-center justify-center py-10 text-center">{isUserPenalized ? (<><div className="text-5xl mb-2">⛔</div><h4 className="font-bold text-red-600">Acceso Restringido</h4><p className="text-gray-500 dark:text-gray-400 mt-2 max-w-xs">No votaste en el último partido que jugaste. Debes cumplir con la votación para ver el ranking.</p></>) : (<p className="text-yellow-700 dark:text-yellow-300">Completa tus votaciones pendientes para ver el Salón de la Fama.</p>)}</div>)}
-                    </StatCard>
-                </div>
-                <StatCard title="Economía & Vicios" icon="🍻" className="bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-gray-900 border border-orange-200 dark:border-gray-700">
-                    <div className="mb-6"><h4 className="text-sm font-bold text-gray-500 uppercase mb-2">Fútbol vs. Joda (Gasto Total)</h4><div className="relative h-8 bg-gray-200 rounded-full overflow-hidden shadow-inner flex"><div className="h-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white transition-all duration-1000" style={{ width: `${thirdHalfStats.courtPerc}%` }}>{Math.round(thirdHalfStats.courtPerc)}%</div><div className="h-full bg-orange-500 flex items-center justify-center text-xs font-bold text-white transition-all duration-1000" style={{ width: `${thirdHalfStats.thirdHalfPerc}%` }}>{Math.round(thirdHalfStats.thirdHalfPerc)}%</div></div><div className="flex justify-between text-xs mt-1 font-bold"><span className="text-blue-600">Cancha ({formatter.format(thirdHalfStats.totalSpentCourt)})</span><span className="text-orange-600">3er Tiempo ({formatter.format(thirdHalfStats.totalSpentThirdHalf)})</span></div></div>
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center"><div className="p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl"><p className="text-3xl">🍺</p><p className="text-2xl font-black text-yellow-700 dark:text-yellow-400 my-1">{thirdHalfStats.totalBeerLitros} L</p><p className="text-[10px] uppercase font-bold text-gray-500">Litros Bebidos</p></div><div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-xl text-left"><p className="text-xs uppercase font-bold text-gray-500 mb-2 border-b pb-1">Top Consumo</p>{thirdHalfStats.topItems.length > 0 ? (<ul className="space-y-1">{thirdHalfStats.topItems.map((item, idx) => (<li key={idx} className="text-sm flex justify-between"><span>{item.emoji} {item.name}</span><span className="font-bold">{item.qty}</span></li>))}</ul>) : (<p className="text-xs text-gray-400 italic">Sin datos aún</p>)}</div></div>
-                </StatCard>
-                <StatCard title="Tabla de Goleadores" icon="⚽"><div className="overflow-x-auto"><table className="w-full text-left"><TableHeader columns={['Jugador', 'Total', 'Jugada', 'Penal', 'Cabeza', 'T. Libre']} /><tbody>{goalScorers.length > 0 ? goalScorers.map(stat => (<tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"><td className="p-2"><p className="font-semibold">{stat.player.nickname}</p></td><td className="p-2 text-center font-bold text-lg">{stat.totalGoals}</td><td className="p-2 text-center">{stat.goalsPlay}</td><td className="p-2 text-center">{stat.goalsPenalty}</td><td className="p-2 text-center">{stat.goalsHeader}</td><td className="p-2 text-center">{stat.goalsSetPiece}</td></tr>)) : <tr><td colSpan={6}><EmptyState message="Aún no se han marcado goles." /></td></tr>}</tbody></table></div></StatCard>
-                
-                {/* BLOOPERS CARD */}
-                <StatCard title="😅 Bloopers & Curiosidades" icon="🤦" className="border border-red-200 dark:border-red-900">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <TableHeader columns={['Jugador', '🥅 G.Contra', '❌ P.Errado', '🙌 Mal Lat.', '☁️ Mal TL', '🤦 Error']} />
-                            <tbody>
-                                {bloopersRanking.length > 0 ? bloopersRanking.map(stat => (
-                                    <tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                        <td className="p-2 font-semibold text-sm">{stat.player.nickname}</td>
-                                        <td className="p-2 text-center text-red-600 font-bold bg-red-50 dark:bg-red-900/10">{stat.ownGoals > 0 ? stat.ownGoals : '-'}</td>
-                                        <td className="p-2 text-center text-gray-600">{stat.penaltiesMissed > 0 ? stat.penaltiesMissed : '-'}</td>
-                                        <td className="p-2 text-center text-gray-600">{stat.badThrowIns > 0 ? stat.badThrowIns : '-'}</td>
-                                        <td className="p-2 text-center text-gray-600">{stat.badFreeKicks > 0 ? stat.badFreeKicks : '-'}</td>
-                                        <td className="p-2 text-center text-gray-600">{stat.majorErrors > 0 ? stat.majorErrors : '-'}</td>
-                                    </tr>
-                                )) : <tr><td colSpan={6}><EmptyState message="¡Increíble! Nadie ha cometido errores aún." /></td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-                </StatCard>
-
-                <StatCard title="📂 Otros Datos" icon="📋"><div className="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h4 className="font-bold text-gray-700 dark:text-gray-300 mb-3 border-b pb-1">👕 Pendientes de Lavar</h4><p className="text-xs text-gray-500 mb-2">Ordenados por prioridad (menos veces lavó).</p><div className="max-h-60 overflow-y-auto space-y-2 pr-2">{laundryPending.map((stat, i) => (<div key={stat.player.id} className="flex justify-between items-center text-sm p-2 bg-gray-50 dark:bg-gray-700/50 rounded"><div className="flex items-center gap-2"><span className="text-xs font-mono text-gray-400">{i + 1}</span><span className={`font-medium ${stat.matchesWashed === 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{stat.player.nickname}</span></div><span className="text-xs text-gray-500">{stat.matchesWashed} veces lavó</span></div>))}</div></div><div><h4 className="font-bold text-gray-700 dark:text-gray-300 mb-3 border-b pb-1">🧼 Historial de Lavado</h4><div className="text-sm text-gray-500 italic text-center p-4">Para ver el detalle completo, revisa el Fixture o las tarjetas de partidos finalizados.</div><div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-xs text-blue-800 dark:text-blue-200"><strong>Tip:</strong> Al finalizar un partido, el admin asigna quién lava. El sistema sugerirá al siguiente en la lista.</div></div></div></StatCard>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"><StatCard title="Récord Personal" icon="📈"><div className="overflow-x-auto"><table className="w-full text-left"><TableHeader columns={['Jugador', 'PJ', 'PG', 'PE', 'PP']} /><tbody>{recordRanking.length > 0 ? recordRanking.map(stat => (<tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"><td className="p-2 font-semibold">{stat.player.nickname}</td><td className="p-2 text-center font-bold">{stat.pj}</td><td className="p-2 text-center text-green-600">{stat.pg}</td><td className="p-2 text-center text-gray-500">{stat.pe}</td><td className="p-2 text-center text-red-600">{stat.pp}</td></tr>)) : <tr><td colSpan={5}><EmptyState message="No hay partidos finalizados." /></td></tr>}</tbody></table></div></StatCard><StatCard title="Disciplina" icon="🟥"><div className="overflow-x-auto"><table className="w-full text-left"><TableHeader columns={['Jugador', 'Amarillas', 'Rojas']} /><tbody>{disciplineRanking.length > 0 ? disciplineRanking.map(stat => (<tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"><td className="p-2 font-semibold">{stat.player.nickname}</td><td className="p-2 text-center"><span className="inline-block w-5 h-5 bg-yellow-400 mr-1"></span>{stat.yellowCards}</td><td className="p-2 text-center"><span className="inline-block w-5 h-5 bg-red-600 mr-1"></span>{stat.redCards}</td></tr>)) : <tr><td colSpan={3}><EmptyState message="Nadie ha recibido tarjetas." /></td></tr>}</tbody></table></div></StatCard></div>
-                
-                {/* ADMIN PARDON PANEL */}
-                {isAdmin && penalizedPlayers.length > 0 && (
-                    <StatCard title="👮 Panel de Indultos (Admin)" className="border-2 border-red-500 bg-red-50 dark:bg-red-900/10 mt-8">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Los siguientes jugadores no votaron y tienen restringido el acceso a las estadísticas.
-                            Puedes "Indultarlos" (perdonarlos) para que vuelvan a ver el ranking.
-                        </p>
-                        <div className="space-y-3">
-                            {penalizedPlayers.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
-                                    <div>
-                                        <p className="font-bold text-gray-800 dark:text-gray-200">{item.player.nickname}</p>
-                                        <p className="text-xs text-red-500">Deuda de voto: {item.matchDate}</p>
+                <div className="space-y-8 animate-fadeIn">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="bg-gray-900 text-white p-8 rounded-[3rem] shadow-2xl flex flex-col justify-center items-center border-b-8 border-red-600 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚠️</div>
+                            <p className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] mb-4">Penales en Contra</p>
+                            <p className="text-8xl font-black text-red-500 drop-shadow-[0_5px_15px_rgba(239,68,68,0.4)] italic">{teamPenaltiesAgainst}</p>
+                        </div>
+                        <StatCard title="Podio de Votación" icon="⭐" className="lg:col-span-2 border-t-8 border-yellow-400">
+                            {canViewRatings ? (
+                                <div className="space-y-10">
+                                    <Podium top3={ratingRanking.slice(0, 3)} onViewProfile={onViewProfile} />
+                                    
+                                    <div className="border-t dark:border-gray-700 pt-8">
+                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Puntajes Generales</h4>
+                                        <div className="overflow-x-auto rounded-2xl border dark:border-gray-700">
+                                            <table className="w-full text-left text-xs">
+                                                <thead className="bg-gray-50 dark:bg-gray-900">
+                                                    <tr>
+                                                        <th className="p-3 font-black text-gray-500 uppercase">#</th>
+                                                        <th className="p-3 font-black text-gray-500 uppercase">Jugador</th>
+                                                        <th className="p-3 font-black text-gray-500 text-center uppercase">Votos</th>
+                                                        <th className="p-3 font-black text-gray-500 text-center uppercase">Promedio</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y dark:divide-gray-800">
+                                                    {ratingRanking.map((stat, idx) => (
+                                                        <tr key={stat.player.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                                            <td className="p-3 font-black text-gray-300">#{idx + 1}</td>
+                                                            <td className="p-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <img src={stat.player.photoUrl} className="w-6 h-6 rounded-full object-cover" alt="" />
+                                                                    <span className="font-bold text-gray-700 dark:text-gray-200 uppercase">{stat.player.nickname}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-3 text-center font-bold text-gray-400">{stat.ratingCount}</td>
+                                                            <td className="p-3 text-center">
+                                                                <span className="font-black text-yellow-500">{stat.avgRating.toFixed(2)} ★</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                    <button 
-                                        onClick={() => onPardonPlayer && onPardonPlayer(item.matchId, item.player.id)}
-                                        className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 shadow"
-                                    >
-                                        INDULTAR
-                                    </button>
                                 </div>
-                            ))}
+                            ) : <EmptyState message="Debes calificar para ver el podio." />}
+                        </StatCard>
+                    </div>
+                    
+                    <StatCard title="Vicios & Finanzas" icon="🍻" className="border-t-8 border-cyan-500 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-800 dark:to-indigo-950/10">
+                        <div className="mb-10">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Distribución del Gasto (Cancha vs Birra)</h4>
+                            <div className="h-12 bg-gray-200 dark:bg-gray-900 rounded-3xl overflow-hidden flex shadow-inner border-2 border-gray-100 dark:border-gray-800">
+                                <div className="bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white italic" style={{ width: `${thirdHalfStats.courtPerc}%` }}>CANCHA {Math.round(thirdHalfStats.courtPerc)}%</div>
+                                <div className="bg-yellow-400 flex items-center justify-center text-[10px] font-black text-indigo-950 italic" style={{ width: `${thirdHalfStats.thirdHalfPerc}%` }}>3ER TIEMPO {Math.round(thirdHalfStats.thirdHalfPerc)}%</div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-white dark:bg-gray-900 p-6 rounded-[2rem] text-center shadow-md border border-gray-100 dark:border-gray-700">
+                                <p className="text-4xl mb-2">🍺</p>
+                                <p className="text-3xl font-black text-yellow-600 italic tracking-tighter">{thirdHalfStats.totalBeerLitros} L</p>
+                                <p className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Litros Bebidos</p>
+                            </div>
+                            <div className="bg-white dark:bg-gray-900 p-6 rounded-[2rem] text-center shadow-md border border-gray-100 dark:border-gray-700">
+                                <p className="text-4xl mb-2">💰</p>
+                                <p className="text-3xl font-black text-emerald-600 italic tracking-tighter">{formatter.format(thirdHalfStats.totalSpentThirdHalf)}</p>
+                                <p className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Inversión en Ocio</p>
+                            </div>
                         </div>
                     </StatCard>
-                )}
-            </div>
+
+                    <StatCard title="Vallas e Invitados" icon="🥅" className="border-t-8 border-gray-800">
+                        <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-3xl text-center">
+                            <p className="text-xs font-black text-gray-400 uppercase mb-2 tracking-widest">Vallas Invictas</p>
+                            <p className="text-6xl font-black text-gray-800 dark:text-white">{filteredMatches.filter(m => m.opponentScore === 0).length}</p>
+                        </div>
+                    </StatCard>
+
+                    <StatCard title="Ranking Goleadores" icon="⚽" className="border-t-8 border-green-500">
+                        <div className="overflow-x-auto rounded-[2rem] border-2 dark:border-gray-700">
+                            <table className="w-full text-left">
+                                <TableHeader columns={['Jugador', 'Total', 'Jugada', 'Penal', 'Cabeza', 'T. Libre']} />
+                                <tbody className="divide-y dark:divide-gray-800">
+                                    {goalScorers.length > 0 ? goalScorers.map(stat => (
+                                        <tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="group cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={stat.player.photoUrl} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
+                                                    <span className="font-black text-xs uppercase group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{stat.player.nickname}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className="font-black text-3xl text-green-600 italic group-hover:scale-125 inline-block transition-transform decoration-dotted underline underline-offset-4">{stat.totalGoals}</span>
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-gray-500">{stat.goalsPlay}</td>
+                                            <td className="p-4 text-center font-bold text-gray-500">{stat.goalsPenalty}</td>
+                                            <td className="p-4 text-center font-bold text-gray-500">{stat.goalsHeader}</td>
+                                            <td className="p-4 text-center font-bold text-gray-500">{stat.goalsSetPiece}</td>
+                                        </tr>
+                                    )) : <tr><td colSpan={6} className="p-10 text-center italic text-gray-400">No hay goles en este rango.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </StatCard>
+
+                    <StatCard title="Disciplina" icon="🟥" className="border-t-8 border-red-600">
+                        <div className="overflow-x-auto rounded-[2rem] border-2 dark:border-gray-700">
+                            <table className="w-full text-left">
+                                <TableHeader columns={['Jugador', 'Amarillas', 'Rojas']} />
+                                <tbody className="divide-y dark:divide-gray-800">
+                                    {disciplineRanking.length > 0 ? disciplineRanking.map(stat => (
+                                        <tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="group cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={stat.player.photoUrl} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm group-hover:scale-110 transition-transform" alt="" />
+                                                    <span className="font-black text-xs uppercase group-hover:text-red-600 transition-colors">{stat.player.nickname}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="w-3 h-5 bg-yellow-400 rounded-sm shadow-sm"></div>
+                                                    <span className="font-black text-xl text-gray-700 dark:text-gray-200">{stat.yellowCards}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="w-3 h-5 bg-red-600 rounded-sm shadow-sm"></div>
+                                                    <span className="font-black text-xl text-gray-700 dark:text-gray-200">{stat.redCards}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )) : <tr><td colSpan={3} className="p-10 text-center italic text-gray-400">Nadie ha recibido tarjetas en este rango.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </StatCard>
+                </div>
             )}
 
             {view === 'match' && (
-            <div className="space-y-6 animate-fadeIn">
-                <select value={selectedMatchId || ''} onChange={(e) => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)} className="w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">-- Selecciona un partido finalizado --</option>
-                    {finishedMatches.map(match => (<option key={match.id} value={match.id}>{match.date} - vs {opponents.find(o => o.id === match.opponentId)?.name || 'Rival'}</option>))}
-                </select>
-                
-                {!selectedMatch && <EmptyState message="Elige un partido de la lista para ver sus detalles." />}
-
-                {selectedMatch && perMatchStats && (
-                    <div className="space-y-6 mt-6">
-                        <StatCard title="🍻 Consumo del Partido" icon="🍻">
-                            {selectedMatch.thirdHalf && selectedMatch.thirdHalf.totalSpent > 0 ? (
-                            <div className="space-y-3">
-                                <p className="text-3xl font-black text-center text-green-600 dark:text-green-400">{formatter.format(selectedMatch.thirdHalf.totalSpent)}</p>
-                                <ul className="space-y-2 pt-4 border-t dark:border-gray-700">
-                                    {selectedMatch.thirdHalf.items.map((item: ThirdHalfItem) => (<li key={item.id} className="flex justify-between items-center text-sm p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md"><span>{PRESET_ITEM_EMOJIS[item.id] || '🛒'} {item.name}</span><span className="font-bold">{item.quantity}</span></li>))}
-                                </ul>
-                            </div>
-                            ) : ( <EmptyState message="No se cargó consumo para este partido." /> )}
-                        </StatCard>
-                        <StatCard title="Goleadores del Partido" icon="⚽">
-                             <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                <TableHeader columns={['Jugador', 'Total', 'Jugada', 'Penal', 'Cabeza', 'T. Libre']} />
-                                <tbody>
-                                    {perMatchStats.goalScorers.length > 0 ? perMatchStats.goalScorers.map(stat => (
-                                    <tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                        <td className="p-2 font-semibold">{stat.player.nickname}</td>
-                                        <td className="p-2 text-center font-bold text-lg">{stat.totalGoals}</td>
-                                        <td className="p-2 text-center">{stat.goalsPlay || 0}</td>
-                                        <td className="p-2 text-center">{stat.goalsPenalty || 0}</td>
-                                        <td className="p-2 text-center">{stat.goalsHeader || 0}</td>
-                                        <td className="p-2 text-center">{stat.goalsSetPiece || 0}</td>
-                                    </tr>
-                                    )) : <tr><td colSpan={6}><EmptyState message="No hubo goles en este partido." /></td></tr>}
-                                </tbody>
-                                </table>
-                            </div>
-                        </StatCard>
-                        <StatCard title="Disciplina del Partido" icon="🟥">
-                             <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                <TableHeader columns={['Jugador', 'Amarillas', 'Rojas']} />
-                                <tbody>
-                                    {perMatchStats.discipline.length > 0 ? perMatchStats.discipline.map(stat => (
-                                    <tr key={stat.player.id} onClick={() => onViewProfile(stat.player)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                        <td className="p-2 font-semibold">{stat.player.nickname}</td>
-                                        <td className="p-2 text-center"><span className="inline-block w-5 h-5 bg-yellow-400 mr-1"></span>{stat.yellowCards || 0}</td>
-                                        <td className="p-2 text-center"><span className="inline-block w-5 h-5 bg-red-600 mr-1"></span>{stat.redCard ? 1 : 0}</td>
-                                    </tr>
-                                    )) : <tr><td colSpan={3}><EmptyState message="Partido limpio, sin tarjetas." /></td></tr>}
-                                </tbody>
-                                </table>
-                            </div>
-                        </StatCard>
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="max-w-xl mx-auto">
+                        <select 
+                            value={selectedMatchId || ''} 
+                            onChange={(e) => setSelectedMatchId(e.target.value ? Number(e.target.value) : null)} 
+                            className="w-full p-5 bg-white dark:bg-gray-800 border-4 border-indigo-100 dark:border-gray-700 rounded-[2rem] shadow-2xl font-black uppercase italic tracking-tighter outline-none focus:border-indigo-500 transition-all text-gray-800 dark:text-white"
+                        >
+                            <option value="">-- Elige una fecha --</option>
+                            {finishedMatches.map(match => (
+                                <option key={match.id} value={match.id} className="text-black">
+                                    {match.date.split(',')[0]} - vs {opponents.find(o => o.id === match.opponentId)?.name || 'Rival'}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                )}
-            </div>
+
+                    {!selectedMatch && <EmptyState message="Selecciona un partido del historial para ver el detalle." />}
+                    
+                    {selectedMatch && perMatchStats && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-zoomIn max-w-6xl mx-auto">
+                            <StatCard title="Figuras del Partido" icon="⭐">
+                                <div className="space-y-3">
+                                    {(perMatchStats.matchRanking.length > 0) ? (
+                                        (isAdmin ? perMatchStats.matchRanking : perMatchStats.matchRanking.slice(0, 5)).map((p, i) => (
+                                            <div key={p.player.id} className="flex justify-between items-center bg-white dark:bg-gray-900 p-3 rounded-2xl border-2 border-indigo-50 dark:border-gray-700 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-lg font-black text-gray-300 w-4">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span>
+                                                    <img src={p.player.photoUrl} className="w-8 h-8 rounded-full object-cover" alt="" />
+                                                    <span className="font-black uppercase text-[10px]">{p.player.nickname}</span>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-yellow-500 font-black text-sm">{p.matchAvg.toFixed(2)} ★</span>
+                                                    {isAdmin && <span className="text-[8px] text-gray-400">{p.matchVotes} votos</span>}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : <EmptyState message="Sin votos aún." />}
+                                </div>
+                            </StatCard>
+
+                            <StatCard title="Goleadores" icon="⚽">
+                                <div className="space-y-3">
+                                    {perMatchStats.goalScorers.length > 0 ? perMatchStats.goalScorers.map(p => (
+                                        <div key={p.player.id} className="flex justify-between items-center bg-gray-50 dark:bg-gray-900 p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-3">
+                                                <img src={p.player.photoUrl} className="w-10 h-10 rounded-full object-cover" alt="" />
+                                                <span className="font-black uppercase text-xs">{p.player.nickname}</span>
+                                            </div>
+                                            <span className="bg-green-600 text-white px-4 py-1 rounded-full font-black italic tracking-tighter">⚽ {p.totalGoals}</span>
+                                        </div>
+                                    )) : <EmptyState message="Partido sin goles propios." />}
+                                </div>
+                            </StatCard>
+                            
+                            <StatCard title="Resumen" icon="📊">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-bold text-gray-400 uppercase">Resultado</span>
+                                        <span className="font-black text-indigo-600 uppercase">
+                                            {perMatchStats?.goalScorers.reduce((acc, p) => acc + p.totalGoals, 0) || 0} - {selectedMatch.opponentScore || 0}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-bold text-gray-400 uppercase">Recaudación</span>
+                                        <span className="font-black text-emerald-600">{formatter.format(selectedMatch.playerStatuses.reduce((acc, ps) => acc + (ps.amountPaid || 0), 0))}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="font-bold text-gray-400 uppercase">Votación</span>
+                                        <span className={`font-black uppercase ${selectedMatch.ratingStatus === 'OPEN' ? 'text-green-500' : 'text-red-500'}`}>{selectedMatch.ratingStatus === 'OPEN' ? 'Abierta' : 'Cerrada'}</span>
+                                    </div>
+                                </div>
+                            </StatCard>
+                        </div>
+                    )}
+
+                    {selectedMatch && isAdmin && (
+                        <div className="mt-8 max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-[2rem] p-8 shadow-xl border-2 border-indigo-50 dark:border-gray-700">
+                             <h3 className="text-xl font-black text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2 italic uppercase tracking-tighter">
+                                <span>👮</span> Detalle de Votación (Admin)
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {selectedMatch.playerStatuses
+                                    .filter(ps => ps.attendanceStatus === 'CONFIRMED')
+                                    .map(ps => {
+                                        const p = stats.find(s => s.player.id === ps.playerId)?.player;
+                                        if (!p) return null;
+                                        const raterVotes = selectedMatch.ratings?.[p.id] || {};
+                                        const hasVoted = selectedMatch.finishedVoters?.includes(p.id);
+
+                                        return (
+                                            <div key={p.id} className="border-2 dark:border-gray-700 rounded-2xl overflow-hidden">
+                                                <div className="bg-gray-50 dark:bg-gray-900 p-3 flex justify-between items-center border-b dark:border-gray-700">
+                                                    <div className="flex items-center gap-2">
+                                                        <img src={p.photoUrl} className="w-8 h-8 rounded-full object-cover" alt="" />
+                                                        <span className="font-black text-[10px] uppercase truncate w-24">{p.nickname}</span>
+                                                    </div>
+                                                    <span className={`text-[9px] font-black px-2 py-1 rounded-full ${hasVoted ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {hasVoted ? 'VOTÓ' : 'PENDIENTE'}
+                                                    </span>
+                                                </div>
+                                                <div className="p-3 grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                                                    {Object.entries(raterVotes).length > 0 ? (
+                                                        Object.entries(raterVotes).map(([targetId, rating]) => {
+                                                            const target = stats.find(s => s.player.id === Number(targetId))?.player;
+                                                            return (
+                                                                <div key={targetId} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-2 rounded-xl border dark:border-gray-800">
+                                                                    <div className="flex flex-col overflow-hidden">
+                                                                        <span className="text-[9px] font-bold truncate w-14">{target?.nickname || '---'}</span>
+                                                                        <span className="text-[10px] text-yellow-500 font-black">{rating} ★</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    ) : <p className="col-span-2 text-center text-[10px] text-gray-400 italic py-2">Sin votos</p>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

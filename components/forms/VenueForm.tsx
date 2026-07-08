@@ -15,12 +15,14 @@ export const VenueForm: React.FC<VenueFormProps> = ({ venue, onSave, onCancel })
         address: venue?.address || '',
         mapLink: venue?.mapLink || '',
         photoUrl: venue?.photoUrl || '',
+        defaultPrice: venue?.defaultPrice || 0,
+        courtNumber: venue?.courtNumber || '',
     });
      const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseFloat(value) || 0 : value }));
     };
     
     const compressImage = (file: File): Promise<string> => {
@@ -126,13 +128,42 @@ export const VenueForm: React.FC<VenueFormProps> = ({ venue, onSave, onCancel })
             </div>
 
             <div>
-                <label htmlFor="name" className="block text-sm font-medium">Nombre de la Cancha</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClass} />
+                <label htmlFor="name" className="block text-sm font-medium">Nombre del Predio / Cancha</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} required className={inputClass} placeholder="Ej: Predio Zucamor" />
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-950/30 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+                <label htmlFor="courtNumber" className="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1">N° de Cancha o Sector (Opcional)</label>
+                <input 
+                    type="text" 
+                    name="courtNumber" 
+                    value={formData.courtNumber} 
+                    onChange={handleChange} 
+                    className={inputClass} 
+                    placeholder="Ej: 2, Sintético, Principal..."
+                />
+                <p className="text-[10px] text-indigo-400 mt-1 font-bold italic">Este número se cargará por defecto cuando elijas este predio en un partido.</p>
             </div>
             
             <div>
                 <label htmlFor="address" className="block text-sm font-medium">Dirección</label>
                 <input type="text" name="address" value={formData.address} onChange={handleChange} required className={inputClass} />
+            </div>
+
+            <div>
+                <label htmlFor="defaultPrice" className="block text-sm font-medium text-emerald-600 font-bold">Valor Alquiler (Por Defecto)</label>
+                <div className="relative mt-1">
+                    <span className="absolute left-3 top-2.5 text-gray-400">$</span>
+                    <input 
+                        type="number" 
+                        name="defaultPrice" 
+                        value={formData.defaultPrice} 
+                        onChange={handleChange} 
+                        className={`${inputClass} pl-8 font-black text-emerald-600`}
+                        placeholder="0"
+                    />
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-tighter">Este valor se cargará automáticamente en cada partido que elijas esta cancha.</p>
             </div>
 
             <div>

@@ -10,6 +10,7 @@ interface FixturePageProps {
     setCurrentPage: (page: Page) => void;
     setSelectedMatchId: (id: number) => void;
     onOpenMatchForm: (params: { tournamentId: number, match?: Match }) => void;
+    onEditTournament: (tournament: Tournament) => void;
     onDeleteMatch: (matchId: number) => void;
     isAdmin: boolean;
 }
@@ -28,7 +29,7 @@ const MatchStatusBadge: React.FC<{ status?: string }> = ({ status }) => {
 };
 
 
-export const FixturePage: React.FC<FixturePageProps> = ({ tournaments, myTeam, matches, opponents, setCurrentPage, setSelectedMatchId, onOpenMatchForm, onDeleteMatch, isAdmin }) => {
+export const FixturePage: React.FC<FixturePageProps> = ({ tournaments, myTeam, matches, opponents, setCurrentPage, setSelectedMatchId, onOpenMatchForm, onEditTournament, onDeleteMatch, isAdmin }) => {
     
     const sortedTournaments = [...tournaments].sort((a, b) => b.year - a.year);
 
@@ -42,7 +43,7 @@ export const FixturePage: React.FC<FixturePageProps> = ({ tournaments, myTeam, m
     const confirmDelete = (matchId: number, e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card click
         const confirmation = window.prompt("⚠️ ¿Seguro que quieres eliminar este partido?\n\nPara confirmar, escribe: ELIMINAR");
-        if (confirmation === "ELIMINAR") {
+        if (confirmation && confirmation.trim().toUpperCase() === "ELIMINAR") {
             onDeleteMatch(matchId);
         } else if (confirmation !== null) {
             alert("Acción cancelada. Debes escribir 'ELIMINAR'.");
@@ -68,9 +69,20 @@ export const FixturePage: React.FC<FixturePageProps> = ({ tournaments, myTeam, m
                     return (
                         <div key={tournament.id} className={`p-4 border dark:border-gray-700 rounded-lg ${isFinished ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}>
                             <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{tournament.name} - {tournament.year}</h3>
-                                    <p className="text-sm text-gray-500">{tournament.description}</p>
+                                <div className="flex items-center gap-3">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{tournament.name} - {tournament.year}</h3>
+                                        <p className="text-sm text-gray-500">{tournament.description}</p>
+                                    </div>
+                                    {isAdmin && (
+                                        <button 
+                                            onClick={() => onEditTournament(tournament)}
+                                            className="p-2 text-indigo-400 hover:text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 rounded-full transition-colors"
+                                            title="Editar Torneo"
+                                        >
+                                            ✏️
+                                        </button>
+                                    )}
                                 </div>
                                 {isAdmin && !isFinished && (
                                     <button onClick={() => onOpenMatchForm({ tournamentId: tournament.id })} className="px-3 py-1.5 bg-blue-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-colors">

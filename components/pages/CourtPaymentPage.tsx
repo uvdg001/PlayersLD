@@ -8,10 +8,18 @@ interface CourtPaymentPageProps {
     players: Player[];
     opponents: Opponent[];
     onUpdatePayment: (matchId: number, playerId: number, amount: number) => void;
+    initialMatchId?: number | null;
 }
 
-export const CourtPaymentPage: React.FC<CourtPaymentPageProps> = ({ matches, players, opponents, onUpdatePayment }) => {
-    const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+export const CourtPaymentPage: React.FC<CourtPaymentPageProps> = ({ matches, players, opponents, onUpdatePayment, initialMatchId }) => {
+    const [selectedMatchId, setSelectedMatchId] = useState<number | null>(initialMatchId || null);
+
+    // Sincronización Global: Si cambia el partido seleccionado afuera, actualizar aquí
+    React.useEffect(() => {
+        if (initialMatchId) {
+            setSelectedMatchId(initialMatchId);
+        }
+    }, [initialMatchId]);
 
     const activeMatches = useMemo(() => {
         return [...matches].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);

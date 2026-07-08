@@ -45,8 +45,24 @@ export const LDPuzzle: React.FC<LDPuzzleProps> = ({ players, myTeam, onFinish, m
 
     const initGame = (diff: Difficulty) => {
         const config = DIFF_CONFIG[diff];
-        const randomPlayer = players[Math.floor(Math.random() * players.length)];
-        setImgUrl(Math.random() > 0.4 ? (myTeam?.shieldUrl || randomPlayer.photoUrl) : randomPlayer.photoUrl);
+        
+        const imagePool: string[] = [];
+        if (myTeam?.shieldUrl) {
+            imagePool.push(myTeam.shieldUrl);
+        }
+        const shuffledPlayers = [...players].sort(() => 0.5 - Math.random());
+        shuffledPlayers.slice(0, 5).forEach(p => {
+            if (p.photoUrl) {
+                imagePool.push(p.photoUrl);
+            }
+        });
+
+        let imageUrl = myTeam?.shieldUrl || 'https://api.dicebear.com/7.x/shapes/svg?seed=puzzle';
+        if (imagePool.length > 0) {
+            imageUrl = imagePool[Math.floor(Math.random() * imagePool.length)];
+        }
+        setImgUrl(imageUrl);
+        
         const totalTiles = config.size * config.size;
         let newGrid = Array.from({length: totalTiles}, (_, i) => i);
         const emptyIdxVal = totalTiles - 1;

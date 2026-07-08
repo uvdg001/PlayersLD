@@ -36,7 +36,7 @@ export const OpponentsPage: React.FC<OpponentsPageProps> = ({ opponents, onAddOp
 
     const handleSecureDelete = (opponent: Opponent) => {
         const confirmation = window.prompt(`⚠️ ¿Seguro que quieres eliminar a este rival?\n\nPara confirmar, escribe: ELIMINAR`);
-        if (confirmation === "ELIMINAR") {
+        if (confirmation && confirmation.trim().toUpperCase() === "ELIMINAR") {
             onDeleteOpponent(opponent.id);
         } else if (confirmation !== null) {
             alert("Acción cancelada. Debes escribir 'ELIMINAR'.");
@@ -80,9 +80,14 @@ export const OpponentsPage: React.FC<OpponentsPageProps> = ({ opponents, onAddOp
                             )}
                             <div>
                                 <div className="flex items-center space-x-2">
-                                     {opponent.jerseyColor && (
-                                        <div className="w-4 h-4 rounded-full border-2 border-gray-400" style={{ backgroundColor: opponent.jerseyColor }} title={`Color: ${opponent.jerseyColor}`}></div>
-                                    )}
+                                     <div className="flex -space-x-1 mr-1">
+                                         {opponent.jerseyColor && (
+                                            <div className="w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-sm" style={{ backgroundColor: opponent.jerseyColor }} title={`Color 1: ${opponent.jerseyColor}`}></div>
+                                        )}
+                                        {opponent.secondaryJerseyColor && (
+                                            <div className="w-4 h-4 rounded-full border-2 border-white dark:border-gray-800 shadow-sm" style={{ backgroundColor: opponent.secondaryJerseyColor }} title={`Color 2: ${opponent.secondaryJerseyColor}`}></div>
+                                        )}
+                                     </div>
                                     <p className="font-bold text-gray-800 dark:text-gray-200">{opponent.name}</p>
                                 </div>
                                 <StarRating rating={opponent.skillLevel || 0} />
