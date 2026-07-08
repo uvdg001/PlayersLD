@@ -45,6 +45,9 @@ export interface Player {
     gamePoints?: number;
     lastGameDate?: string;
     dailyGameAttempts?: number;
+    isActive?: boolean;
+    dni?: string;
+    preferredFoot?: 'Derecha' | 'Izquierda' | 'Ambidiestro';
 }
 
 export type Page = 'home' | 'fixture' | 'tournaments' | 'venues' | 'opponents' | 'my-team' | 'statistics' | 'treasury' | 'help' | 'chat' | 'logistics' | 'ratings' | 'third-half' | 'entertainment' | 'stopwatch' | 'super-admin' | 'standings-photos';
@@ -87,6 +90,7 @@ export interface PlayerMatchStatus {
     badThrowIns?: number;
     badFreeKicks?: number;
     majorErrors?: number;
+    nudgeCount?: number;
 }
 
 export type Ratings = {
@@ -112,6 +116,7 @@ export interface ThirdHalf {
     observations?: string;
     completedPayerIds?: number[]; 
     playerPayments?: { [playerId: number]: number }; 
+    splitCount?: number;
 }
 
 export interface Match {
@@ -127,7 +132,6 @@ export interface Match {
     ratings?: Ratings;
     ratingStatus: 'OPEN' | 'CLOSED';
     finishedVoters?: number[];
-    pardonedVoters?: number[];
     opponentScore?: number;
     opponentId?: number;
     venueId?: number;
@@ -162,6 +166,7 @@ export interface MyTeam {
     shieldUrl: string;
     primaryColor: string;
     secondaryColor: string;
+    leagueUrl?: string;
 }
 
 export interface Opponent {
@@ -170,6 +175,7 @@ export interface Opponent {
     shieldUrl?: string;
     skillLevel?: number;
     jerseyColor?: string;
+    secondaryJerseyColor?: string;
 }
 
 export interface Venue {
@@ -178,6 +184,8 @@ export interface Venue {
     address: string;
     mapLink?: string;
     photoUrl?: string;
+    defaultPrice?: number;
+    courtNumber?: string;
 }
 
 export interface Tournament {
@@ -196,6 +204,7 @@ export interface AppSettings {
     arcadeStartTime?: string;
     arcadeEndTime?: string;
     hiddenGameIds?: string[];
+    defaultTournamentId?: number;
 }
 
 export interface PlayerStats {

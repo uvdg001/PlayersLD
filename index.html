@@ -9,10 +9,21 @@
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: 'media',
+        theme: {
+          extend: {
+            fontFamily: {
+              'bebas': ['"Bebas Neue"', 'cursive'],
+              'orbitron': ['Orbitron', 'sans-serif'],
+            }
+          }
+        }
       }
     </script>
 <script type="importmap">

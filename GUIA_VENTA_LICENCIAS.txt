@@ -1,0 +1,40 @@
+GUÍA DE VENTA: LICENCIA PLAYERS LD
+=================================
+
+Este documento detalla el proceso para dar de alta a un nuevo cliente (equipo) y cómo gestionar su acceso.
+
+1. ALTA DEL EQUIPO (PASO DEL DUEÑO)
+-----------------------------------
+Como dueño de la app, vos tenés el control total.
+- Entrá a la App.
+- En la pantalla de inicio ("Nombre de tu equipo"), escribí el Código Maestro: PLAYERLD
+- Se abrirá el PANEL MAESTRO.
+- Elegí "CREAR NUEVO EQUIPO".
+- Nombre del Equipo: Poné el nombre que el cliente quiera (Ej: "Los Galácticos").
+- Código de Acceso: Definí la palabra clave con la que ellos van a entrar.
+- Estado: Asegurate que esté en "ACTIVE".
+
+2. ENTREGA AL CLIENTE (EL ADMINISTRADOR)
+----------------------------------------
+Una vez creado, contactá al capitán o administrador del equipo cliente:
+- Entregale la URL de la App y su NOMBRE DE EQUIPO.
+- Instrucción para el Admin: "Entrá con el nombre del equipo. El primero de la lista (o el que definas) es el admin. Cargá la plantilla de jugadores en la sección de Configuración/Plantilla."
+- Asignación de PINs: El Admin debe ponerle un PIN de 4 dígitos a cada jugador dentro de la app.
+
+3. ACCESO DE LOS JUGADORES
+--------------------------
+El flujo para el resto del equipo es:
+- Abrir la App -> Poner el Nombre del Equipo.
+- Elegir su nombre/cara de la lista.
+- Poner el PIN que le dio su Capitán.
+
+4. GESTIÓN DE PAGOS (SUSPENSIÓN)
+--------------------------------
+Si el equipo no paga la cuota mensual:
+- Entrá al PANEL MAESTRO (Código PLAYERLD).
+- Buscá el equipo en la lista.
+- Cambiá el estado a "INACTIVE".
+- Automáticamente, nadie de ese equipo podrá entrar y verán el mensaje: "Servicio Suspendido".
+
+--------------------------------------------------
+Players LD - Gestión Profesional de Equipos
